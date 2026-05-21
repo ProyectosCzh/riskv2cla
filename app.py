@@ -6,6 +6,7 @@ Run with:
     streamlit run app.py
 """
 import sys
+sys.dont_write_bytecode = True #eliminar en producción para permitir .pyc y mejorar rendimiento
 from pathlib import Path
 
 # ── Ensure project root is on path ─────────────────────────────────────────────
