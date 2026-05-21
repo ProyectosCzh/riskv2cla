@@ -8,8 +8,9 @@ from database.repositories import (
     get_simulations_for_user,
     get_risk_profile_for_user,
 )
+from services.market_service import get_risk_profiles
 from ui.components.metrics_cards import (
-    page_header, section_header, metric_card, alert_box, risk_badge, spacer, tooltip_box
+    page_header, section_header, metric_card, alert_box, spacer
 )
 
 
@@ -78,11 +79,7 @@ def render_dashboard() -> None:
     # ── Risk profile summary ───────────────────────────────────────────────
     if risk_result:
         section_header("Tu Perfil de Riesgo")
-        import json
-        from pathlib import Path
-        profiles_path = Path(__file__).resolve().parent.parent.parent / "config" / "risk_profiles.json"
-        with open(profiles_path) as f:
-            profiles = json.load(f)
+        profiles = get_risk_profiles()
 
         profile_key = risk_result.get("profile", "moderado")
         profile_data = profiles.get(profile_key, {})

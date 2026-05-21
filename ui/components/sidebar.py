@@ -3,6 +3,7 @@ SmartRisk - Sidebar Navigation Component
 """
 import streamlit as st
 from auth.session_manager import get_current_user, logout_session, is_admin
+from config.settings import APP_NAME, APP_VERSION, ROLE_ADMIN
 
 
 NAV_ITEMS_USER = [
@@ -40,7 +41,7 @@ def render_sidebar() -> None:
 
         # ── User info ──────────────────────────────────────────────────────
         display_name = user.get("full_name") or user.get("username", "Usuario")
-        role_label = "Administrador" if user.get("role") == "admin" else "Inversor"
+        role_label = "Administrador" if user.get("role") == ROLE_ADMIN else "Inversor"
         st.markdown(
             f"""
             <div style="padding: 0 0.5rem 1rem; font-size: 0.8rem;">
@@ -82,10 +83,10 @@ def render_sidebar() -> None:
 
         # ── Footer ─────────────────────────────────────────────────────────
         st.markdown(
-            """
+            f"""
             <div style="position: absolute; bottom: 1.5rem; left: 1rem; right: 1rem;
                         text-align: center; font-size: 0.65rem; color: rgba(255,255,255,0.25);">
-                SmartRisk v1.0 · SI210M1 · 2026
+                {APP_NAME} v{APP_VERSION} · SI210M1 · 2026
             </div>
             """,
             unsafe_allow_html=True,

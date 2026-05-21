@@ -56,6 +56,7 @@ def main() -> None:
     inject_css()
     init_session()
     ensure_admin_exists()
+    ensure_directories()
 
     # ── Auth gate ──────────────────────────────────────────────────────────
     if not is_authenticated():
@@ -67,7 +68,22 @@ def main() -> None:
 
     current_page = st.session_state.get("current_page", "dashboard")
     renderer = PAGE_MAP.get(current_page, render_dashboard)
-    renderer()
+    
+    try:
+        renderer()
+    except Exception as e:
+        st.error(f"Ocurrió un error inesperado en la página: {e}")
+        # Optionally show more detail for admins
+        from auth.session_manager import is_admin
+        if is_admin():
+            st.exception(e)
+
+
+def ensure_directories() -> None:
+    """Create necessary data directories if they don't exist."""
+    from config.settings import DATA_DIR, CACHE_DIR, EXPORTS_DIR
+    for d in [DATA_DIR, CACHE_DIR, EXPORTS_DIR]:
+        d.mkdir(parents=True, exist_ok=True)
 
 
 if __name__ == "__main__":

@@ -51,26 +51,27 @@ def run_monte_carlo(cfg: SimulationConfig) -> SimulationResult:
 
     # ── Build covariance matrix & Cholesky factor ──────────────────────────
     # Ensure positive definite by adding small jitter
-    cov = np.outer(sigma, sigma) * corr
-    min_eig = np.linalg.eigvalsh(cov).min()
-    if min_eig < 1e-10:
-        cov += np.eye(len(sigma)) * (abs(min_eig) + 1e-8)
+    # cov = np.outer(sigma, sigma) * corr
+    # min_eig = np.linalg.eigvalsh(cov).min()
+    # if min_eig < 1e-10:
+    #     cov += np.eye(len(sigma)) * (abs(min_eig) + 1e-8)
 
-    L = np.linalg.cholesky(cov)  # lower-triangular
+    # L = np.linalg.cholesky(cov)  # lower-triangular
 
-    n_assets = len(weights)
+    # n_assets = len(weights)
     n_steps = int(cfg.projection_years * 252)
     dt = cfg.dt
 
     # ── Portfolio drift (weighted average) ────────────────────────────────
     port_mu = float(weights @ mu)
     # Portfolio variance (scalar)
+    cov = np.outer(sigma, sigma) * corr
     port_var = float(weights @ cov @ weights)
     port_sigma = float(np.sqrt(port_var))
 
     # ── Simulate correlated asset returns, collapse to portfolio ─────────
     # We simulate the portfolio as a single GBM process for speed,
-    # using weighted mu and Cholesky-derived portfolio sigma.
+    # using weighted mu and portfolio sigma.
     # Shape: (n_sim, n_steps)
     Z = rng.standard_normal((cfg.n_simulations, n_steps))
 
@@ -92,21 +93,13 @@ def run_monte_carlo(cfg: SimulationConfig) -> SimulationResult:
 
     # ── Apply DCA (monthly contributions) ────────────────────────────────
     if cfg.monthly_dca > 0:
-        # Add monthly_dca at each month-end step
         trading_days_per_month = 21
         for step in range(1, n_steps + 1):
             if step % trading_days_per_month == 0:
-                # Each simulation accrues the DCA contribution
-                # with remaining growth to end
-                remaining_steps = n_steps - step
-                # Contribution grows for the remaining period
-                contribution_growth = np.exp(
-                    log_returns[:, step - 1 : step].sum(axis=1) * 0
-                )  # immediate add
-                paths[:, step:] += cfg.monthly_dca * np.ones(
-                    (cfg.n_simulations, n_steps + 1 - step)
-                )
-
+                # Growth factor from the contribution step to the end
+                growth_factor = cum_returns[:, -1] / cum_returns[:, step]
+                # Add the DCA amount, grown to the end of the period
+                paths[:, -1] += cfg.monthly_dca * growth_factor
     final_values = paths[:, -1]
 
     # ── Compute percentiles ───────────────────────────────────────────────

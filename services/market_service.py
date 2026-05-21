@@ -17,7 +17,7 @@ CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
 
 
 def get_asset_catalog() -> dict:
-    with open(CONFIG_DIR / "assets.json") as f:
+    with open(CONFIG_DIR / "assets.json", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -60,3 +60,10 @@ def get_quick_stats_table(tickers: list[str], years: int = 5) -> pd.DataFrame:
                 "Inicio": s["start_date"],
             })
     return pd.DataFrame(rows)
+
+
+def get_risk_profiles() -> dict:
+    """Loads risk profiles from JSON file."""
+    path = CONFIG_DIR / "risk_profiles.json"
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)

@@ -24,7 +24,14 @@ from ui.components.charts import (
     plot_historical_performance,
     plot_correlation_heatmap,
 )
-from config.settings import DEFAULT_SIMULATIONS, RISK_FREE_RATE
+from config.settings import (
+    DEFAULT_INITIAL_CAPITAL,
+    DEFAULT_MONTHLY_DCA,
+    DEFAULT_PROJECTION_YEARS,
+    DEFAULT_HISTORY_YEARS,
+    MAX_SIMULATIONS,
+    RISK_FREE_RATE,
+)
 
 
 def render_simulator() -> None:
@@ -82,7 +89,7 @@ def render_simulator() -> None:
             "Capital inicial (USD)",
             min_value=100,
             max_value=10_000_000,
-            value=10_000,
+            value=DEFAULT_INITIAL_CAPITAL,
             step=1000,
             key="sim_capital",
             help="Monto inicial de inversión en dólares.",
@@ -91,7 +98,7 @@ def render_simulator() -> None:
             "Aportación mensual DCA (USD)",
             min_value=0,
             max_value=100_000,
-            value=0,
+            value=DEFAULT_MONTHLY_DCA,
             step=100,
             key="sim_dca",
             help="Aportación mensual adicional (Dollar Cost Averaging). Ingresa 0 si no deseas aportar mensualmente.",
@@ -101,7 +108,7 @@ def render_simulator() -> None:
         history_years = st.select_slider(
             "Ventana histórica de análisis",
             options=[1, 3, 5, 7, 10],
-            value=5,
+            value=DEFAULT_HISTORY_YEARS,
             key="sim_history",
             help="Años de datos históricos para calibrar los parámetros del modelo.",
         )
@@ -109,17 +116,21 @@ def render_simulator() -> None:
             "Horizonte de proyección (años)",
             min_value=1,
             max_value=20,
-            value=5,
+            value=DEFAULT_PROJECTION_YEARS,
             key="sim_projection",
             help="Período de tiempo futuro que deseas simular.",
         )
 
     col3, col4 = st.columns(2)
     with col3:
+        sim_options = [1_000, 3_000, 5_000, 10_000]
+        if MAX_SIMULATIONS not in sim_options:
+            sim_options.append(MAX_SIMULATIONS)
+        sim_options = sorted(sim_options)
         n_sims = st.select_slider(
             "Número de simulaciones",
-            options=[1_000, 3_000, 5_000, 10_000],
-            value=5_000,
+            options=sim_options,
+            value=min(5_000, MAX_SIMULATIONS),
             key="sim_n",
             help="Mayor número = mayor precisión, pero más tiempo de cómputo.",
         )
@@ -273,7 +284,6 @@ def _render_results(result, portfolio_data, tickers: list, weights: list) -> Non
             frontier_df = compute_efficient_frontier(portfolio_data)
             # Run quick optimization for display
             from core.finance.markowitz import optimize_max_sharpe
-            import numpy as np
             cov = np.outer(portfolio_data.sigma_vec, portfolio_data.sigma_vec) * portfolio_data.corr_array
             opt = optimize_max_sharpe(portfolio_data.mu_vec, cov, RISK_FREE_RATE, tickers)
 

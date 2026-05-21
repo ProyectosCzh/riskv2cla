@@ -27,7 +27,7 @@ def _is_cache_valid(path: Path) -> bool:
 
 def _load_cache(path: Path) -> Optional[pd.Series]:
     try:
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         series = pd.Series(data["prices"], dtype=float)
         series.index = pd.to_datetime(data["dates"])
@@ -43,7 +43,7 @@ def _save_cache(path: Path, prices: pd.Series) -> None:
         "prices": prices.values.tolist(),
         "cached_at": datetime.now().isoformat(),
     }
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f)
 
 

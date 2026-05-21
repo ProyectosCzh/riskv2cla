@@ -24,7 +24,7 @@ CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 
 
 def _load_assets() -> dict:
-    with open(CONFIG_DIR / "assets.json") as f:
+    with open(CONFIG_DIR / "assets.json", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -55,16 +55,8 @@ def render_portfolio_builder() -> None:
 
     col_sel, col_info = st.columns([2, 1])
     with col_sel:
-        # Category filter
-        categories = ["Todas las categorías"] + list(assets_data["categories"].keys())
-        selected_cat = st.selectbox("Filtrar por categoría", categories, key="pb_cat")
-
-        if selected_cat == "Todas las categorías":
-            available = all_tickers
-        else:
-            available = [a["ticker"] for a in flat_assets if a["category"] == selected_cat]
-
-        display_options = [ticker_labels[t] for t in available]
+        # Show full asset list (no category filter). Do NOT provide a "select all" option.
+        display_options = [ticker_labels[t] for t in all_tickers]
 
         selected_labels = st.multiselect(
             "Activos seleccionados",
@@ -74,47 +66,13 @@ def render_portfolio_builder() -> None:
             placeholder=f"Selecciona hasta {MAX_ASSETS} activos...",
             help=f"Puedes agregar hasta {MAX_ASSETS} activos a tu cartera.",
         )
-        selected_tickers = []
-        for label in selected_labels:
-            ticker = label.split(" — ")[0]
-            selected_tickers.append(ticker)
+        selected_tickers = [label.split(" — ")[0] for label in selected_labels]
 
-    with col_info:
-        st.markdown("<div style='height: 2rem'></div>", unsafe_allow_html=True)
-        st.markdown(
-            f"""
-            <div style="background:#EBF4FF; border:1px solid #BEE3F8; border-radius:10px; padding:1rem;">
-                <div style="font-weight:700; color:#1B3A6B; margin-bottom:0.5rem;">
-                    📋 Catálogo de Activos
-                </div>
-                <div style="font-size:0.82rem; color:#4A5568; line-height:1.7;">
-                    • {len([a for a in flat_assets if a['type']=='stock'])} Acciones individuales<br>
-                    • {len([a for a in flat_assets if a['type']=='etf'])} ETFs diversificados<br>
-                    • {len([a for a in flat_assets if 'bond' in a['type']])} Fondos de Bonos<br>
-                    • {len([a for a in flat_assets if a['type']=='commodity_etf'])} Commodities & Alternativos
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    # ── Custom ticker ──────────────────────────────────────────────────────
-    with st.expander("➕ Agregar ticker personalizado"):
-        custom_ticker = st.text_input(
-            "Ticker (ej. BRKB, COIN)",
-            key="pb_custom",
-            help="Ingresa cualquier ticker válido de Yahoo Finance.",
-        ).upper().strip()
-        if st.button("Agregar ticker", key="pb_add_custom"):
-            if custom_ticker:
-                if len(selected_tickers) >= MAX_ASSETS:
-                    st.error(f"Ya tienes {MAX_ASSETS} activos seleccionados.")
-                elif custom_ticker not in selected_tickers:
-                    st.session_state["pb_custom_added"] = st.session_state.get("pb_custom_added", []) + [custom_ticker]
-                    st.success(f"✅ {custom_ticker} agregado.")
-
-    custom_added = st.session_state.get("pb_custom_added", [])
-    selected_tickers = list(dict.fromkeys(selected_tickers + custom_added))[:MAX_ASSETS]
+    # Custom ticker functionality removed as per debugging guide
+    # with st.expander("➕ Agregar ticker personalizado"):
+    #     ...
+    
+    selected_tickers = list(dict.fromkeys(selected_tickers))[:MAX_ASSETS]
 
     spacer(0.5)
 
@@ -127,17 +85,18 @@ def render_portfolio_builder() -> None:
     section_header("Asignación de Pesos", "Desliza para asignar el porcentaje de inversión en cada activo.")
     tooltip_box("La suma de todos los pesos debe ser exactamente 100%. El sistema lo valida automáticamente.")
 
-    weights = []
-    remaining = 100
+    # Allow the user to input any percentage for each asset (0-100).
+    # Use number_input fields so all assets are editable. Provide a "Normalize" button
+    # to scale current values to sum exactly 100%.
+    weights_inputs: dict[str, float] = {}
+    default_pct = int(100 / len(selected_tickers)) if selected_tickers else 0
 
     for i, ticker in enumerate(selected_tickers):
-        asset_info = ticker_map.get(ticker, {"name": "Ticker personalizado", "type": "custom"})
-        is_last = (i == len(selected_tickers) - 1)
-
-        col_label, col_slider, col_val = st.columns([1.5, 3, 0.7])
+        asset_info = ticker_map[ticker]
+        col_label, col_input, col_val = st.columns([1.5, 2.5, 0.7])
         with col_label:
-            type_icons = {"stock": "📈", "etf": "📦", "bond_etf": "🛡️", "commodity_etf": "🏅", "reit": "🏢", "custom": "⭐"}
-            icon = type_icons.get(asset_info.get("type", "custom"), "📈")
+            type_icons = {"stock": "📈", "etf": "📦", "bond_etf": "🛡️", "commodity_etf": "🏅", "reit": "🏢"}
+            icon = type_icons.get(asset_info.get("type", "stock"), "📈")
             st.markdown(
                 f"""
                 <div style="padding-top:0.55rem;">
@@ -148,28 +107,41 @@ def render_portfolio_builder() -> None:
                 unsafe_allow_html=True,
             )
 
-        if is_last:
-            # Last asset gets the remainder
-            last_weight = max(0, 100 - sum(weights))
-            with col_slider:
-                st.slider(
-                    f"Peso {ticker}", 0, 100, int(last_weight),
-                    disabled=True, key=f"w_{ticker}_slider", label_visibility="collapsed"
-                )
-            with col_val:
-                st.markdown(f"<div style='padding-top:0.5rem; font-weight:700; color:#1B3A6B;'>{last_weight:.0f}%</div>", unsafe_allow_html=True)
-            weights.append(last_weight / 100)
-        else:
-            max_val = min(100, remaining)
-            default_val = min(int(100 / len(selected_tickers)), max_val)
-            w = st.slider(
-                f"Peso {ticker}", 0, max_val, default_val,
-                key=f"w_{ticker}_slider", label_visibility="collapsed"
+        key = f"w_{ticker}_input"
+        # Preserve previous input if present in session_state
+        initial_val = st.session_state.get(key, float(default_pct))
+        with col_input:
+            pct = st.number_input(
+                f"Peso {ticker} (%)",
+                min_value=0.0,
+                max_value=100.0,
+                value=float(initial_val),
+                step=0.1,
+                key=key,
+                label_visibility="collapsed",
             )
-            with col_val:
-                st.markdown(f"<div style='padding-top:0.5rem; font-weight:700; color:#1B3A6B;'>{w}%</div>", unsafe_allow_html=True)
-            weights.append(w / 100)
-            remaining -= w
+        with col_val:
+            st.markdown(f"<div style='padding-top:0.5rem; font-weight:700; color:#1B3A6B;'>{pct:.1f}%</div>", unsafe_allow_html=True)
+        weights_inputs[ticker] = float(pct)
+
+    # Normalize button: scale current percentages to sum to 100
+    col_norm, col_spacer = st.columns([1, 3])
+    with col_norm:
+        if st.button("🔁 Normalizar a 100%"):
+            total_now = sum(weights_inputs.values())
+            if total_now > 0:
+                for t, v in weights_inputs.items():
+                    new_v = v / total_now * 100.0
+                    st.session_state[f"w_{t}_input"] = round(new_v, 2)
+            else:
+                # If all zeros, distribute equally
+                for t in weights_inputs.keys():
+                    st.session_state[f"w_{t}_input"] = round(100.0 / len(weights_inputs), 2)
+            st.experimental_rerun()
+
+    # Build final weights list (fractions) and validation
+    total_pct = sum(weights_inputs.values())
+    weights = [weights_inputs[t] / 100.0 for t in selected_tickers]
 
     total_pct = sum(w * 100 for w in weights)
     is_valid = abs(total_pct - 100) < 0.5

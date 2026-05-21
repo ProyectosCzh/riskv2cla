@@ -2,6 +2,7 @@
 SmartRisk - Session Management via Streamlit Session State
 """
 import streamlit as st
+from config.settings import ROLE_ADMIN
 
 
 def init_session() -> None:
@@ -27,8 +28,9 @@ def login_session(user: dict) -> None:
 
 def logout_session() -> None:
     """Clear authentication from session."""
-    for key in ["authenticated", "user", "portfolio_draft", "simulation_result"]:
-        st.session_state[key] = None if key != "authenticated" else False
+    for key in ["authenticated", "user", "portfolio_draft", "simulation_result", "sim_portfolio_data"]:
+        if key in st.session_state:
+            st.session_state[key] = None if key != "authenticated" else False
     st.session_state.current_page = "dashboard"
 
 
@@ -42,9 +44,4 @@ def is_authenticated() -> bool:
 
 def is_admin() -> bool:
     user = get_current_user()
-    return bool(user and user.get("role") == "admin")
-
-
-def require_auth() -> bool:
-    """Returns True if user is authenticated, else False (caller shows login)."""
-    return is_authenticated()
+    return bool(user and user.get("role") == ROLE_ADMIN)

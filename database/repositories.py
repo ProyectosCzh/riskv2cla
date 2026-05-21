@@ -3,10 +3,11 @@ SmartRisk - JSON Persistence Layer
 All data is stored in JSON files under /data/.
 """
 import json
+import os
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 from config.settings import (
     USERS_FILE,
@@ -35,7 +36,7 @@ def _write(filepath: Path, data: dict) -> None:
     tmp = filepath.with_suffix(".tmp")
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2, default=str)
-    tmp.replace(filepath)
+    os.replace(tmp, filepath)
 
 
 def _now() -> str:

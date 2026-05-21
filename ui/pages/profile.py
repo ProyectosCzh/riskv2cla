@@ -89,8 +89,9 @@ def render_profile() -> None:
             elif len(new_pass) < 8:
                 st.error("La nueva contraseña debe tener al menos 8 caracteres.")
             else:
-                update_user(user["id"], {"password_hash": hash_password(new_pass)})
-                st.session_state.user["password_hash"] = hash_password(new_pass)
+                new_hash = hash_password(new_pass)
+                update_user(user["id"], {"password_hash": new_hash})
+                st.session_state.user["password_hash"] = new_hash
                 st.success("✅ Contraseña actualizada exitosamente.")
 
     # ── Stats ──────────────────────────────────────────────────────────────

@@ -1,7 +1,6 @@
 """
 SmartRisk - Global Configuration Settings
 """
-import os
 from pathlib import Path
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
@@ -45,5 +44,6 @@ ROLE_ADMIN = "admin"
 ROLE_USER = "user"
 
 # Ensure directories exist
-for d in [DATA_DIR, CACHE_DIR, EXPORTS_DIR]:
-    d.mkdir(parents=True, exist_ok=True)
+# This is now handled by an explicit function call in app.py
+# for d in [DATA_DIR, CACHE_DIR, EXPORTS_DIR]:
+#     d.mkdir(parents=True, exist_ok=True)

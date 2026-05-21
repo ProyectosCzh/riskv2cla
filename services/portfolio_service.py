@@ -74,7 +74,7 @@ class PortfolioData:
         first_prices = {t: self.prices[t] for t in self.tickers}
         df = pd.DataFrame(first_prices).dropna()
         normed = df / df.iloc[0]
-        port_prices = (normed * self.weights).sum(axis=1)
+        port_prices = sum(normed[t] * w for t, w in zip(self.tickers, self.weights))
         return compute_all_metrics(port_ret, port_prices, RISK_FREE_RATE)
 
     def risk_profile_check(self, user_profile: str) -> dict:

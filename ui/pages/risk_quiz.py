@@ -3,7 +3,8 @@ SmartRisk - Risk Profile Quiz Page
 """
 import streamlit as st
 from auth.session_manager import get_current_user
-from database.repositories import save_risk_profile, get_risk_profile_for_user
+from database.repositories import get_risk_profile_for_user, save_risk_profile
+from services.market_service import get_risk_profiles
 from ui.components.metrics_cards import page_header, section_header, alert_box, spacer
 
 
@@ -74,11 +75,7 @@ def render_risk_quiz() -> None:
 
     existing = get_risk_profile_for_user(user["id"])
     if existing:
-        import json
-        from pathlib import Path
-        profiles_path = Path(__file__).resolve().parent.parent.parent / "config" / "risk_profiles.json"
-        with open(profiles_path) as f:
-            profiles = json.load(f)
+        profiles = get_risk_profiles()
 
         profile_key = existing["profile"]
         profile_data = profiles.get(profile_key, {})
@@ -100,7 +97,6 @@ def _render_quiz_form(user_id: str) -> None:
     section_header("Cuestionario de Perfil de Riesgo", "Selecciona la respuesta que mejor describe tu situación.")
 
     answers = []
-    valid = True
 
     for i, q in enumerate(QUESTIONS):
         st.markdown(
@@ -119,6 +115,7 @@ def _render_quiz_form(user_id: str) -> None:
         choice = st.radio(
             label=f"Pregunta {i+1}",
             options=option_labels,
+            index=0,
             key=f"quiz_{q['id']}",
             label_visibility="collapsed",
         )
@@ -132,11 +129,7 @@ def _render_quiz_form(user_id: str) -> None:
         profile = _classify_profile(total_score)
         save_risk_profile(user_id, profile, total_score, answers)
 
-        import json
-        from pathlib import Path
-        profiles_path = Path(__file__).resolve().parent.parent.parent / "config" / "risk_profiles.json"
-        with open(profiles_path) as f:
-            profiles = json.load(f)
+        profiles = get_risk_profiles()
 
         profile_data = profiles.get(profile, {})
         st.success(f"✅ Perfil guardado exitosamente: **{profile_data.get('label','')}**")
@@ -144,9 +137,6 @@ def _render_quiz_form(user_id: str) -> None:
 
 
 def _show_profile_detail(profile_key: str, profile_data: dict, score: int) -> None:
-    import json
-    from pathlib import Path
-
     col1, col2 = st.columns([1, 2])
     with col1:
         colors = {"conservador": "#C6F6D5", "moderado": "#BEE3F8", "agresivo": "#FED7D7"}
@@ -188,7 +178,7 @@ def _show_profile_detail(profile_key: str, profile_data: dict, score: int) -> No
     spacer()
     section_header("Activos Sugeridos para tu Perfil")
     tickers = profile_data.get("suggested_tickers", [])
-    cols = st.columns(len(tickers))
+    cols = st.columns(len(tickers) if tickers else 1)
     for i, ticker in enumerate(tickers):
         with cols[i]:
             st.markdown(
