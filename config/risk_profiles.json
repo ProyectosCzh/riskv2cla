@@ -1,0 +1,41 @@
+{
+  "conservador": {
+    "label": "Conservador",
+    "color": "#2ECC71",
+    "icon": "🛡️",
+    "description": "Priorizas la preservación del capital. Toleras poca volatilidad y prefieres rendimientos estables aunque menores.",
+    "max_volatility": 0.12,
+    "recommended_allocation": {
+      "bonds": 0.60,
+      "equities": 0.30,
+      "cash": 0.10
+    },
+    "suggested_tickers": ["BND", "TLT", "VCSH", "AGG", "SHY"]
+  },
+  "moderado": {
+    "label": "Moderado",
+    "color": "#3498DB",
+    "icon": "⚖️",
+    "description": "Buscas un equilibrio entre crecimiento y protección. Aceptas cierta volatilidad a cambio de mejores retornos en el largo plazo.",
+    "max_volatility": 0.20,
+    "recommended_allocation": {
+      "bonds": 0.35,
+      "equities": 0.60,
+      "cash": 0.05
+    },
+    "suggested_tickers": ["SPY", "QQQ", "BND", "VTI", "SCHD"]
+  },
+  "agresivo": {
+    "label": "Agresivo",
+    "color": "#E74C3C",
+    "icon": "🚀",
+    "description": "Buscas maximizar el crecimiento a largo plazo. Toleras alta volatilidad y posibles pérdidas temporales significativas.",
+    "max_volatility": 1.0,
+    "recommended_allocation": {
+      "bonds": 0.05,
+      "equities": 0.90,
+      "cash": 0.05
+    },
+    "suggested_tickers": ["QQQ", "ARKK", "NVDA", "TSLA", "META"]
+  }
+}

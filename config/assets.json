@@ -1,0 +1,74 @@
+{
+  "categories": {
+    "Acciones USA - Tecnología": [
+      {"ticker": "AAPL",  "name": "Apple Inc.",              "type": "stock"},
+      {"ticker": "MSFT",  "name": "Microsoft Corp.",         "type": "stock"},
+      {"ticker": "NVDA",  "name": "NVIDIA Corp.",            "type": "stock"},
+      {"ticker": "GOOGL", "name": "Alphabet Inc.",           "type": "stock"},
+      {"ticker": "META",  "name": "Meta Platforms",          "type": "stock"},
+      {"ticker": "AMZN",  "name": "Amazon.com Inc.",         "type": "stock"},
+      {"ticker": "TSLA",  "name": "Tesla Inc.",              "type": "stock"},
+      {"ticker": "AMD",   "name": "Advanced Micro Devices",  "type": "stock"},
+      {"ticker": "INTC",  "name": "Intel Corp.",             "type": "stock"},
+      {"ticker": "CRM",   "name": "Salesforce Inc.",         "type": "stock"}
+    ],
+    "Acciones USA - Finanzas": [
+      {"ticker": "JPM",   "name": "JPMorgan Chase",          "type": "stock"},
+      {"ticker": "BAC",   "name": "Bank of America",         "type": "stock"},
+      {"ticker": "GS",    "name": "Goldman Sachs",           "type": "stock"},
+      {"ticker": "V",     "name": "Visa Inc.",               "type": "stock"},
+      {"ticker": "MA",    "name": "Mastercard Inc.",         "type": "stock"}
+    ],
+    "Acciones USA - Salud & Consumo": [
+      {"ticker": "JNJ",   "name": "Johnson & Johnson",       "type": "stock"},
+      {"ticker": "PFE",   "name": "Pfizer Inc.",             "type": "stock"},
+      {"ticker": "UNH",   "name": "UnitedHealth Group",      "type": "stock"},
+      {"ticker": "PG",    "name": "Procter & Gamble",        "type": "stock"},
+      {"ticker": "KO",    "name": "Coca-Cola Co.",           "type": "stock"},
+      {"ticker": "MCD",   "name": "McDonald's Corp.",        "type": "stock"},
+      {"ticker": "WMT",   "name": "Walmart Inc.",            "type": "stock"}
+    ],
+    "Acciones USA - Energía & Industrial": [
+      {"ticker": "XOM",   "name": "ExxonMobil Corp.",        "type": "stock"},
+      {"ticker": "CVX",   "name": "Chevron Corp.",           "type": "stock"},
+      {"ticker": "CAT",   "name": "Caterpillar Inc.",        "type": "stock"},
+      {"ticker": "BA",    "name": "Boeing Co.",              "type": "stock"},
+      {"ticker": "GE",    "name": "GE Aerospace",            "type": "stock"}
+    ],
+    "ETFs - Renta Variable": [
+      {"ticker": "SPY",   "name": "SPDR S&P 500 ETF",        "type": "etf"},
+      {"ticker": "QQQ",   "name": "Invesco NASDAQ-100 ETF",  "type": "etf"},
+      {"ticker": "VTI",   "name": "Vanguard Total Market",   "type": "etf"},
+      {"ticker": "IWM",   "name": "iShares Russell 2000",    "type": "etf"},
+      {"ticker": "DIA",   "name": "SPDR Dow Jones ETF",      "type": "etf"},
+      {"ticker": "VEA",   "name": "Vanguard FTSE Dev. Mkts", "type": "etf"},
+      {"ticker": "EEM",   "name": "iShares MSCI Emrg Mkts",  "type": "etf"},
+      {"ticker": "SCHD",  "name": "Schwab US Dividend ETF",  "type": "etf"},
+      {"ticker": "VGT",   "name": "Vanguard IT ETF",         "type": "etf"},
+      {"ticker": "XLF",   "name": "Financial Select SPDR",   "type": "etf"}
+    ],
+    "ETFs - Renta Fija & Bonos": [
+      {"ticker": "BND",   "name": "Vanguard Total Bond Mkt", "type": "bond_etf"},
+      {"ticker": "AGG",   "name": "iShares Core US Agg Bond","type": "bond_etf"},
+      {"ticker": "TLT",   "name": "iShares 20+ Yr Treasury", "type": "bond_etf"},
+      {"ticker": "SHY",   "name": "iShares 1-3yr Treasury",  "type": "bond_etf"},
+      {"ticker": "VCSH",  "name": "Vanguard ST Corp Bond",   "type": "bond_etf"},
+      {"ticker": "LQD",   "name": "iShares IG Corp Bond",    "type": "bond_etf"},
+      {"ticker": "HYG",   "name": "iShares High Yield Bond", "type": "bond_etf"}
+    ],
+    "Commodities & Alternativos": [
+      {"ticker": "GLD",   "name": "SPDR Gold Shares",        "type": "commodity_etf"},
+      {"ticker": "SLV",   "name": "iShares Silver Trust",    "type": "commodity_etf"},
+      {"ticker": "USO",   "name": "US Oil Fund",             "type": "commodity_etf"},
+      {"ticker": "PDBC",  "name": "Invesco Commodity ETF",   "type": "commodity_etf"},
+      {"ticker": "VNQ",   "name": "Vanguard Real Estate ETF","type": "reit"}
+    ],
+    "Tecnología & Innovación": [
+      {"ticker": "ARKK",  "name": "ARK Innovation ETF",      "type": "etf"},
+      {"ticker": "SOXX",  "name": "iShares Semiconductor",   "type": "etf"},
+      {"ticker": "MSTR",  "name": "MicroStrategy Inc.",      "type": "stock"},
+      {"ticker": "COIN",  "name": "Coinbase Global",         "type": "stock"},
+      {"ticker": "PLTR",  "name": "Palantir Technologies",   "type": "stock"}
+    ]
+  }
+}

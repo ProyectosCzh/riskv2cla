@@ -1,0 +1,369 @@
+"""
+SmartRisk - Simulator Page (Monte Carlo)
+"""
+from __future__ import annotations
+
+import streamlit as st
+import numpy as np
+
+from auth.session_manager import get_current_user
+from database.repositories import (
+    get_portfolios_for_user,
+    get_risk_profile_for_user,
+)
+from services.portfolio_service import build_portfolio_data, run_markowitz_optimization, compute_efficient_frontier
+from services.simulation_service import run_simulation, persist_simulation
+from ui.components.metrics_cards import (
+    page_header, section_header, alert_box, tooltip_box, spacer, metric_card
+)
+from ui.components.charts import (
+    plot_monte_carlo_paths,
+    plot_final_value_histogram,
+    plot_efficient_frontier,
+    plot_portfolio_weights,
+    plot_historical_performance,
+    plot_correlation_heatmap,
+)
+from config.settings import DEFAULT_SIMULATIONS, RISK_FREE_RATE
+
+
+def render_simulator() -> None:
+    user = get_current_user()
+    if not user:
+        return
+
+    page_header("Simulador Monte Carlo 🔬", "Proyecta el futuro de tu portafolio con miles de escenarios estocásticos.")
+
+    # ── Portfolio selection ────────────────────────────────────────────────
+    section_header("1. Selecciona tu Portafolio")
+    portfolios = get_portfolios_for_user(user["id"])
+    draft = st.session_state.get("portfolio_draft")
+
+    if not portfolios and not draft:
+        alert_box("No tienes portafolios guardados. Ve a <strong>Mi Portafolio</strong> y construye uno primero.", "warning")
+        return
+
+    # Build selection options
+    options = {}
+    if draft:
+        options[f"[Borrador] {draft.get('name','Portafolio')}"] = draft
+    for p in portfolios:
+        options[p["name"]] = {"tickers": p["assets"], "weights": p["weights"], "name": p["name"]}
+
+    selected_name = st.selectbox("Portafolio a simular", list(options.keys()), key="sim_portfolio")
+    selected_portfolio = options[selected_name]
+
+    tickers = selected_portfolio["tickers"]
+    weights = selected_portfolio["weights"]
+
+    # Quick summary
+    cols = st.columns(len(tickers))
+    colors = ["#1B3A6B", "#2952A3", "#63B3ED", "#38A169", "#DD6B20"]
+    for i, (t, w) in enumerate(zip(tickers, weights)):
+        with cols[i]:
+            st.markdown(
+                f"""
+                <div style="background:{colors[i%5]}; border-radius:8px; padding:0.6rem; text-align:center; color:white;">
+                    <div style="font-weight:700; font-size:1rem;">{t}</div>
+                    <div style="font-size:0.82rem; opacity:0.85;">{w*100:.1f}%</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    spacer()
+
+    # ── Simulation parameters ──────────────────────────────────────────────
+    section_header("2. Parámetros de Simulación")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        initial_capital = st.number_input(
+            "Capital inicial (USD)",
+            min_value=100,
+            max_value=10_000_000,
+            value=10_000,
+            step=1000,
+            key="sim_capital",
+            help="Monto inicial de inversión en dólares.",
+        )
+        monthly_dca = st.number_input(
+            "Aportación mensual DCA (USD)",
+            min_value=0,
+            max_value=100_000,
+            value=0,
+            step=100,
+            key="sim_dca",
+            help="Aportación mensual adicional (Dollar Cost Averaging). Ingresa 0 si no deseas aportar mensualmente.",
+        )
+
+    with col2:
+        history_years = st.select_slider(
+            "Ventana histórica de análisis",
+            options=[1, 3, 5, 7, 10],
+            value=5,
+            key="sim_history",
+            help="Años de datos históricos para calibrar los parámetros del modelo.",
+        )
+        projection_years = st.slider(
+            "Horizonte de proyección (años)",
+            min_value=1,
+            max_value=20,
+            value=5,
+            key="sim_projection",
+            help="Período de tiempo futuro que deseas simular.",
+        )
+
+    col3, col4 = st.columns(2)
+    with col3:
+        n_sims = st.select_slider(
+            "Número de simulaciones",
+            options=[1_000, 3_000, 5_000, 10_000],
+            value=5_000,
+            key="sim_n",
+            help="Mayor número = mayor precisión, pero más tiempo de cómputo.",
+        )
+    with col4:
+        st.markdown("<div style='height:0.3rem'></div>", unsafe_allow_html=True)
+        tooltip_box(
+            f"Ventana {'larga' if history_years >= 7 else 'corta'}: "
+            f"{'Mayor significancia estadística, captura ciclos económicos completos.' if history_years >= 7 else 'Más sensible al contexto macroeconómico reciente (inflación, tasas).'}"
+        )
+
+    spacer()
+
+    # ── Run simulation ─────────────────────────────────────────────────────
+    run_btn = st.button("🚀 Ejecutar Simulación Monte Carlo", type="primary", use_container_width=True)
+
+    if run_btn:
+        with st.spinner(f"⚙️ Descargando datos de mercado ({history_years} años)..."):
+            portfolio_data = build_portfolio_data(tickers, weights, history_years)
+
+        if portfolio_data is None:
+            alert_box("❌ No se pudieron descargar los datos de mercado. Verifica los tickers e intenta nuevamente.", "danger")
+            return
+
+        # Risk profile audit
+        risk_result = get_risk_profile_for_user(user["id"])
+        if risk_result:
+            audit = portfolio_data.risk_profile_check(risk_result["profile"])
+            if not audit["ok"]:
+                st.markdown(
+                    f'<div class="alert-warning" style="margin-bottom:1rem;">🚨 <strong>Alerta de Perfil:</strong> {audit["message"]}</div>',
+                    unsafe_allow_html=True,
+                )
+
+        with st.spinner(f"🔬 Simulando {n_sims:,} escenarios..."):
+            result = run_simulation(
+                portfolio_data,
+                initial_capital=float(initial_capital),
+                monthly_dca=float(monthly_dca),
+                projection_years=float(projection_years),
+                n_simulations=n_sims,
+            )
+
+        # Persist
+        persist_simulation(user["id"], portfolio_data, result)
+        st.session_state.simulation_result = result
+        st.session_state.sim_portfolio_data = portfolio_data
+
+        st.success("✅ Simulación completada. Resultados guardados.")
+        st.rerun()
+
+    # ── Display results if available ───────────────────────────────────────
+    result = st.session_state.get("simulation_result")
+    portfolio_data = st.session_state.get("sim_portfolio_data")
+
+    if result and portfolio_data:
+        _render_results(result, portfolio_data, tickers, weights)
+
+
+def _render_results(result, portfolio_data, tickers: list, weights: list) -> None:
+    spacer()
+    section_header("📊 Resultados de la Simulación")
+
+    metrics = result.metrics
+    cfg = result.config
+
+    # ── Key metrics row ────────────────────────────────────────────────────
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        metric_card(
+            "Capital Final Esperado",
+            f"${metrics['median_capital']:,.0f}",
+            f"CAGR mediano: {metrics['cagr_median']:.2%}",
+            color="#38A169",
+        )
+    with col2:
+        metric_card(
+            "VaR 95% (Peor caso probable)",
+            f"${metrics['var_95_value']:,.0f}",
+            f"Pérdida potencial: ${metrics['var_95_loss']:,.0f}",
+            color="#E53E3E",
+        )
+    with col3:
+        metric_card(
+            "Max Drawdown (Mediana)",
+            f"{metrics['max_drawdown']:.2%}",
+            "Peor caída proyectada",
+            color="#DD6B20",
+        )
+    with col4:
+        metric_card(
+            "Probabilidad de Pérdida",
+            f"{metrics['prob_loss']:.1%}",
+            f"sobre ${metrics['total_invested']:,.0f} invertidos",
+            color="#E53E3E" if metrics["prob_loss"] > 0.3 else "#38A169",
+        )
+
+    spacer(0.5)
+
+    col5, col6, col7, col8 = st.columns(4)
+    with col5:
+        metric_card("Sharpe Ratio", f"{portfolio_data.portfolio_sharpe:.2f}", "Eficiencia riesgo/retorno")
+    with col6:
+        metric_card("Volatilidad Anual", f"{portfolio_data.portfolio_sigma:.2%}", "Desviación estándar del portafolio")
+    with col7:
+        metric_card("Retorno Esperado", f"{portfolio_data.portfolio_mu:.2%}", "Media histórica anualizada")
+    with col8:
+        metric_card("CVaR 95%", f"${metrics['cvar_95']:,.0f}", "Pérdida esperada más allá del VaR")
+
+    spacer()
+
+    # ── Tooltips ───────────────────────────────────────────────────────────
+    with st.expander("📚 ¿Qué significa cada métrica?"):
+        col_a, col_b = st.columns(2)
+        with col_a:
+            tooltip_box("<strong>VaR 95%</strong>: En el 95% de los escenarios simulados, tu capital final será mayor a este valor. Es tu piso de protección en condiciones normales de mercado.")
+            spacer(0.3)
+            tooltip_box("<strong>Max Drawdown</strong>: La mayor caída desde un pico hasta un valle en la trayectoria mediana. Mide el peor dolor temporal que podrías experimentar.")
+        with col_b:
+            tooltip_box("<strong>Sharpe Ratio</strong>: Rendimiento extra (sobre la tasa libre de riesgo) por unidad de riesgo asumido. Valores > 1 son considerados buenos.")
+            spacer(0.3)
+            tooltip_box("<strong>CVaR (Expected Shortfall)</strong>: El promedio de pérdidas en el peor 5% de escenarios. Más conservador que el VaR.")
+
+    spacer()
+
+    # ── Charts ─────────────────────────────────────────────────────────────
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "📈 Proyección", "📊 Distribución", "🎯 Frontera Eficiente",
+        "📉 Histórico", "🔗 Correlaciones"
+    ])
+
+    with tab1:
+        fig = plot_monte_carlo_paths(result.paths, cfg.projection_years, cfg.initial_capital)
+        st.plotly_chart(fig, use_container_width=True)
+        alert_box(
+            f"Basado en <strong>{cfg.n_simulations:,} escenarios</strong> usando datos de mercado reales. "
+            f"Las bandas representan los percentiles 5%-95% y 25%-75%.",
+            "info",
+        )
+
+    with tab2:
+        col_hist, col_pie = st.columns([2, 1])
+        with col_hist:
+            fig2 = plot_final_value_histogram(result.final_values, cfg.initial_capital)
+            st.plotly_chart(fig2, use_container_width=True)
+        with col_pie:
+            fig_pie = plot_portfolio_weights(tickers, weights)
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+    with tab3:
+        with st.spinner("Calculando frontera eficiente..."):
+            frontier_df = compute_efficient_frontier(portfolio_data)
+            # Run quick optimization for display
+            from core.finance.markowitz import optimize_max_sharpe
+            import numpy as np
+            cov = np.outer(portfolio_data.sigma_vec, portfolio_data.sigma_vec) * portfolio_data.corr_array
+            opt = optimize_max_sharpe(portfolio_data.mu_vec, cov, RISK_FREE_RATE, tickers)
+
+        fig3 = plot_efficient_frontier(
+            frontier_df,
+            portfolio_data.portfolio_sigma,
+            portfolio_data.portfolio_mu,
+            opt.volatility,
+            opt.expected_return,
+        )
+        st.plotly_chart(fig3, use_container_width=True)
+
+        # Optimization result table
+        section_header("Portafolio Óptimo (Máximo Sharpe)")
+        opt_data = {t: f"{w*100:.1f}%" for t, w in zip(opt.tickers, opt.weights)}
+        col_left, col_right = st.columns(2)
+        with col_left:
+            for t, pct in opt_data.items():
+                st.markdown(
+                    f"<div style='padding:0.3rem 0; border-bottom:1px solid #EDF2F7;'>"
+                    f"<strong>{t}</strong>: {pct}</div>",
+                    unsafe_allow_html=True,
+                )
+        with col_right:
+            metric_card("Sharpe Óptimo", f"{opt.sharpe_ratio:.3f}", "vs actual")
+            spacer(0.3)
+            metric_card("Volatilidad Óptima", f"{opt.volatility:.2%}", "")
+
+    with tab4:
+        fig4 = plot_historical_performance(portfolio_data.prices, weights, tickers)
+        st.plotly_chart(fig4, use_container_width=True)
+
+        # Historical stats per asset
+        section_header("Estadísticas Históricas por Activo")
+        import pandas as pd
+        hist_rows = []
+        for t in tickers:
+            s = portfolio_data.stats.get(t, {})
+            hist_rows.append({
+                "Activo": t,
+                "Retorno Anual": f"{s.get('mu', 0):.2%}",
+                "Volatilidad Anual": f"{s.get('sigma', 0):.2%}",
+                "Max Drawdown (histórico)": f"{s.get('max_drawdown', 0):.2%}",
+            })
+        st.dataframe(pd.DataFrame(hist_rows), use_container_width=True, hide_index=True)
+
+    with tab5:
+        fig5 = plot_correlation_heatmap(portfolio_data.corr_matrix)
+        st.plotly_chart(fig5, use_container_width=True)
+        tooltip_box(
+            "La correlación mide cómo se mueven juntos dos activos. "
+            "Valores cercanos a -1 indican movimientos opuestos (ideal para diversificación). "
+            "Valores cercanos a 1 indican que suben y bajan al mismo tiempo."
+        )
+
+    # ── Export ─────────────────────────────────────────────────────────────
+    spacer()
+    section_header("📤 Exportar Resultados")
+    import pandas as pd, io
+
+    export_data = {
+        "Métrica": [
+            "Capital Inicial", "Aportaciones Mensuales DCA", "Horizonte (años)",
+            "Capital Final Mediano", "Capital Final Esperado",
+            "VaR 95%", "CVaR 95%", "Max Drawdown (Mediana)",
+            "Probabilidad de Pérdida", "Sharpe Ratio", "Volatilidad Anual", "CAGR Mediano"
+        ],
+        "Valor": [
+            f"${cfg.initial_capital:,.2f}",
+            f"${cfg.monthly_dca:,.2f}",
+            str(cfg.projection_years),
+            f"${metrics['median_capital']:,.2f}",
+            f"${metrics['expected_capital']:,.2f}",
+            f"${metrics['var_95_value']:,.2f}",
+            f"${metrics['cvar_95']:,.2f}",
+            f"{metrics['max_drawdown']:.4f}",
+            f"{metrics['prob_loss']:.4f}",
+            f"{portfolio_data.portfolio_sharpe:.4f}",
+            f"{portfolio_data.portfolio_sigma:.4f}",
+            f"{metrics['cagr_median']:.4f}",
+        ],
+    }
+    df_export = pd.DataFrame(export_data)
+    csv_buf = io.StringIO()
+    df_export.to_csv(csv_buf, index=False)
+
+    st.download_button(
+        "⬇️ Descargar Reporte CSV",
+        data=csv_buf.getvalue(),
+        file_name=f"smartrisk_simulacion_{tickers[0]}.csv",
+        mime="text/csv",
+        use_container_width=True,
+    )
