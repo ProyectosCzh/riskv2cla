@@ -109,12 +109,14 @@ def render_results() -> None:
         st.rerun()
 
     # ── Export all ─────────────────────────────────────────────────────────
-    import io
-    csv_buf = io.StringIO()
-    display_df.to_csv(csv_buf, index=False)
-    st.download_button(
-        "⬇️ Exportar todo el historial (CSV)",
-        data=csv_buf.getvalue(),
-        file_name="smartrisk_historial.csv",
-        mime="text/csv",
-    )
+    if 'display_df' in locals() and not display_df.empty:
+        import io
+
+        csv_buf = io.StringIO()
+        display_df.to_csv(csv_buf, index=False)
+        st.download_button(
+            "⬇️ Exportar todo el historial (CSV)",
+            data=csv_buf.getvalue(),
+            file_name="smartrisk_historial.csv",
+            mime="text/csv",
+        )

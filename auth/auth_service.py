@@ -1,6 +1,7 @@
 """
 SmartRisk - Authentication Service
 """
+import re
 from typing import Optional
 
 from auth.password_utils import hash_password, verify_password
@@ -33,7 +34,7 @@ def register_user(
         raise AuthError("Ese correo electrónico ya está registrado.")
     if len(password) < 8:
         raise AuthError("La contraseña debe tener al menos 8 caracteres.")
-    if "@" not in email or "." not in email.split("@")[-1]:
+    if not re.match(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$", email):
         raise AuthError("Ingresa un correo electrónico válido.")
 
     hashed = hash_password(password)

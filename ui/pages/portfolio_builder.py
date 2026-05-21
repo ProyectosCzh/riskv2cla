@@ -68,10 +68,6 @@ def render_portfolio_builder() -> None:
         )
         selected_tickers = [label.split(" — ")[0] for label in selected_labels]
 
-    # Custom ticker functionality removed as per debugging guide
-    # with st.expander("➕ Agregar ticker personalizado"):
-    #     ...
-    
     selected_tickers = list(dict.fromkeys(selected_tickers))[:MAX_ASSETS]
 
     spacer(0.5)
