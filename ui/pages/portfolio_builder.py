@@ -37,6 +37,23 @@ def _flat_asset_list(assets_data: dict) -> list[dict]:
     return flat
 
 
+def _normalize_weight_values(weight_map: dict[str, float]) -> dict[str, float]:
+    """Scale current weights so they sum to 100.
+
+    If all current values are zero, return an equal allocation.
+    """
+    total = sum(weight_map.values())
+    if total <= 0:
+        equal_weight = 100.0 / len(weight_map)
+        return {ticker: equal_weight for ticker in weight_map}
+    return {ticker: (value / total) * 100.0 for ticker, value in weight_map.items()}
+
+
+def _request_normalization() -> None:
+    """Request a weight normalization on the next render pass."""
+    st.session_state["pb_normalize_requested"] = True
+
+
 def render_portfolio_builder() -> None:
     user = get_current_user()
     if not user:
@@ -78,14 +95,30 @@ def render_portfolio_builder() -> None:
         _render_saved_portfolios(user["id"])
         return
 
-    section_header("Asignación de Pesos", "Desliza para asignar el porcentaje de inversión en cada activo.")
+    section_header("Asignación de Pesos", "Ingresa el porcentaje de inversión en cada activo.")
     tooltip_box("La suma de todos los pesos debe ser exactamente 100%. El sistema lo valida automáticamente.")
 
-    # Allow the user to input any percentage for each asset (0-100).
-    # Use number_input fields so all assets are editable. Provide a "Normalize" button
-    # to scale current values to sum exactly 100%.
-    weights_inputs: dict[str, float] = {}
     default_pct = int(100 / len(selected_tickers)) if selected_tickers else 0
+
+    if st.session_state.pop("pb_normalize_requested", False):
+        current_weights = {
+            ticker: float(st.session_state.get(f"w_{ticker}_input", default_pct))
+            for ticker in selected_tickers
+        }
+        normalized_weights = _normalize_weight_values(current_weights)
+        for ticker, value in normalized_weights.items():
+            st.session_state[f"w_{ticker}_input"] = round(value, 2)
+
+    # Initialize only the active selection keys once so every asset remains editable.
+    for ticker in selected_tickers:
+        key = f"w_{ticker}_input"
+        if key not in st.session_state:
+            st.session_state[key] = float(default_pct)
+
+    weights_inputs: dict[str, float] = {
+        ticker: float(st.session_state.get(f"w_{ticker}_input", default_pct))
+        for ticker in selected_tickers
+    }
 
     for i, ticker in enumerate(selected_tickers):
         asset_info = ticker_map[ticker]
@@ -104,38 +137,32 @@ def render_portfolio_builder() -> None:
             )
 
         key = f"w_{ticker}_input"
-        # Preserve previous input if present in session_state
-        initial_val = st.session_state.get(key, float(default_pct))
         with col_input:
-            pct = st.number_input(
+            st.number_input(
                 f"Peso {ticker} (%)",
                 min_value=0.0,
                 max_value=100.0,
-                value=float(initial_val),
                 step=0.1,
                 key=key,
                 label_visibility="collapsed",
             )
+        weights_inputs[ticker] = float(st.session_state.get(key, default_pct))
         with col_val:
-            st.markdown(f"<div style='padding-top:0.5rem; font-weight:700; color:#1B3A6B;'>{pct:.1f}%</div>", unsafe_allow_html=True)
-        weights_inputs[ticker] = float(pct)
+            st.markdown(
+                f"<div style='padding-top:0.5rem; font-weight:700; color:#1B3A6B;'>{weights_inputs[ticker]:.1f}%</div>",
+                unsafe_allow_html=True,
+            )
 
     # Normalize button: scale current percentages to sum to 100
     col_norm, col_spacer = st.columns([1, 3])
     with col_norm:
-        if st.button("🔁 Normalizar a 100%"):
-            total_now = sum(weights_inputs.values())
-            if total_now > 0:
-                for t, v in weights_inputs.items():
-                    new_v = v / total_now * 100.0
-                    st.session_state[f"w_{t}_input"] = round(new_v, 2)
-            else:
-                # If all zeros, distribute equally
-                for t in weights_inputs.keys():
-                    st.session_state[f"w_{t}_input"] = round(100.0 / len(weights_inputs), 2)
-            st.experimental_rerun()
+        st.button("🔁 Normalizar a 100%", on_click=_request_normalization)
 
     # Build final weights list (fractions) and validation
+    weights_inputs = {
+        ticker: float(st.session_state.get(f"w_{ticker}_input", default_pct))
+        for ticker in selected_tickers
+    }
     total_pct = sum(weights_inputs.values())
     weights = [weights_inputs[t] / 100.0 for t in selected_tickers]
 
