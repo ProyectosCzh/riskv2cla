@@ -24,10 +24,17 @@ PLOTLY_LAYOUT = dict(
     paper_bgcolor="white",
     plot_bgcolor="white",
     font=dict(family="DM Sans, sans-serif", color="#1A202C", size=12),
-    margin=dict(l=50, r=30, t=50, b=50),
     xaxis=dict(gridcolor=GRID, showgrid=True, zeroline=False),
     yaxis=dict(gridcolor=GRID, showgrid=True, zeroline=False),
 )
+
+
+def _layout_kwargs(*, margin: dict[str, int] | None = None) -> dict:
+    """Return a fresh Plotly layout dict with an optional chart-specific margin."""
+    layout = dict(PLOTLY_LAYOUT)
+    if margin is not None:
+        layout["margin"] = margin
+    return layout
 
 
 def plot_monte_carlo_paths(
@@ -108,7 +115,7 @@ def plot_monte_carlo_paths(
     )
 
     fig.update_layout(
-        **PLOTLY_LAYOUT,
+        **_layout_kwargs(margin=dict(l=50, r=30, t=50, b=50)),
         title=dict(text="Proyección de Capital — Simulación Monte Carlo", font=dict(size=15, color=NAVY), x=0),
         xaxis_title="Años",
         yaxis_title="Valor del Portafolio (USD)",
@@ -145,7 +152,7 @@ def plot_final_value_histogram(final_values: np.ndarray, initial_capital: float)
                       annotation_font_size=10, annotation_font_color=color)
 
     fig.update_layout(
-        **PLOTLY_LAYOUT,
+        **_layout_kwargs(margin=dict(l=50, r=30, t=50, b=50)),
         title=dict(text="Distribución del Capital Final", font=dict(size=15, color=NAVY), x=0),
         xaxis_title="Valor Final (USD)",
         xaxis_tickprefix="$",
@@ -203,7 +210,7 @@ def plot_efficient_frontier(
         ))
 
     fig.update_layout(
-        **PLOTLY_LAYOUT,
+        **_layout_kwargs(margin=dict(l=50, r=30, t=50, b=50)),
         title=dict(text="Frontera Eficiente de Markowitz", font=dict(size=15, color=NAVY), x=0),
         xaxis_title="Volatilidad Anual (%)",
         yaxis_title="Rendimiento Esperado Anual (%)",
@@ -227,11 +234,10 @@ def plot_portfolio_weights(tickers: list[str], weights: list[float]) -> go.Figur
         textfont=dict(size=12),
     ))
     fig.update_layout(
-        **PLOTLY_LAYOUT,
+        **_layout_kwargs(margin=dict(l=20, r=20, t=50, b=20)),
         title=dict(text="Distribución del Portafolio", font=dict(size=15, color=NAVY), x=0),
         showlegend=False,
         height=320,
-        margin=dict(l=20, r=20, t=50, b=20),
     )
     return fig
 
@@ -272,7 +278,7 @@ def plot_historical_performance(
         ))
 
     fig.update_layout(
-        **PLOTLY_LAYOUT,
+        **_layout_kwargs(margin=dict(l=50, r=30, t=50, b=50)),
         title=dict(text="Rendimiento Histórico Normalizado (Base 100)", font=dict(size=15, color=NAVY), x=0),
         xaxis_title="Fecha",
         yaxis_title="Valor (Base 100)",
@@ -302,9 +308,8 @@ def plot_correlation_heatmap(corr_matrix: pd.DataFrame) -> go.Figure:
     ))
 
     fig.update_layout(
-        **PLOTLY_LAYOUT,
+        **_layout_kwargs(margin=dict(l=60, r=30, t=50, b=60)),
         title=dict(text="Matriz de Correlación", font=dict(size=15, color=NAVY), x=0),
         height=350,
-        margin=dict(l=60, r=30, t=50, b=60),
     )
     return fig
