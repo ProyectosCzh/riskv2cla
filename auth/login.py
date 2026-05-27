@@ -2,7 +2,7 @@
 SmartRisk - Login Page
 """
 import streamlit as st
-from auth.auth_service import authenticate_user
+from auth.auth_service import authenticate_user, register_user, AuthError
 from auth.session_manager import login_session
 
 
@@ -84,8 +84,6 @@ def render_login() -> None:
 
 
 def _render_register_form() -> None:
-    from auth.auth_service import register_user, AuthError
-
     full_name = st.text_input("Nombre completo", placeholder="Juan Pérez", key="reg_name")
     username  = st.text_input("Nombre de usuario", placeholder="juanperez", key="reg_username")
     email     = st.text_input("Correo electrónico", placeholder="juan@email.com", key="reg_email")

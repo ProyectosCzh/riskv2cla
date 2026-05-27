@@ -1,8 +1,6 @@
 """
 SmartRisk - Simulator Page (Monte Carlo)
 """
-from __future__ import annotations
-
 import streamlit as st
 import numpy as np
 
@@ -283,9 +281,7 @@ def _render_results(result, portfolio_data, tickers: list, weights: list) -> Non
         with st.spinner("Calculando frontera eficiente..."):
             frontier_df = compute_efficient_frontier(portfolio_data)
             # Run quick optimization for display
-            from core.finance.markowitz import optimize_max_sharpe
-            cov = np.outer(portfolio_data.sigma_vec, portfolio_data.sigma_vec) * portfolio_data.corr_array
-            opt = optimize_max_sharpe(portfolio_data.mu_vec, cov, RISK_FREE_RATE, tickers)
+            opt = run_markowitz_optimization(portfolio_data, "max_sharpe")
 
         fig3 = plot_efficient_frontier(
             frontier_df,
