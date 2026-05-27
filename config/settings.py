@@ -28,7 +28,7 @@ DEFAULT_INITIAL_CAPITAL = 10000
 DEFAULT_MONTHLY_DCA = 0
 DEFAULT_PROJECTION_YEARS = 5
 DEFAULT_HISTORY_YEARS = 5
-RISK_FREE_RATE = 0.045  # 4.5% annual (US T-bill proxy)
+RISK_FREE_RATE = 0.035  # 3.5% annual (US T-bill proxy)
 
 # ── Portfolio Constraints ──────────────────────────────────────────────────────
 MAX_ASSETS = 5
@@ -43,7 +43,4 @@ MAX_HISTORY_YEARS = 10
 ROLE_ADMIN = "admin"
 ROLE_USER = "user"
 
-# Ensure directories exist
-# This is now handled by an explicit function call in app.py
-# for d in [DATA_DIR, CACHE_DIR, EXPORTS_DIR]:
-#     d.mkdir(parents=True, exist_ok=True)
+

@@ -49,16 +49,6 @@ def run_monte_carlo(cfg: SimulationConfig) -> SimulationResult:
     sigma = np.asarray(cfg.sigma_vec, dtype=float)
     corr = np.asarray(cfg.corr_matrix, dtype=float)
 
-    # ── Build covariance matrix & Cholesky factor ──────────────────────────
-    # Ensure positive definite by adding small jitter
-    # cov = np.outer(sigma, sigma) * corr
-    # min_eig = np.linalg.eigvalsh(cov).min()
-    # if min_eig < 1e-10:
-    #     cov += np.eye(len(sigma)) * (abs(min_eig) + 1e-8)
-
-    # L = np.linalg.cholesky(cov)  # lower-triangular
-
-    # n_assets = len(weights)
     n_steps = int(cfg.projection_years * 252)
     dt = cfg.dt
 
@@ -165,7 +155,7 @@ def _compute_metrics(result: SimulationResult) -> dict:
 def compute_sharpe(
     mu: float,
     sigma: float,
-    risk_free_rate: float = 0.045,
+    risk_free_rate: float = 0.035,
 ) -> float:
     """Compute annualized Sharpe ratio."""
     if sigma <= 0:
@@ -175,7 +165,7 @@ def compute_sharpe(
 
 def compute_sortino(
     returns: np.ndarray,
-    risk_free_rate: float = 0.045,
+    risk_free_rate: float = 0.035,
 ) -> float:
     """Compute Sortino ratio from array of returns."""
     annual_ret = float(np.mean(returns) * 252)

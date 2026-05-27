@@ -17,7 +17,8 @@ from database.repositories import (
 from ui.components.metrics_cards import (
     page_header, section_header, alert_box, tooltip_box, spacer
 )
-from config.settings import MAX_ASSETS
+from services.portfolio_service import build_portfolio_data, run_markowitz_optimization
+from config.settings import MAX_ASSETS, DEFAULT_HISTORY_YEARS
 
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
@@ -109,6 +110,27 @@ def render_portfolio_builder() -> None:
         for ticker, value in normalized_weights.items():
             st.session_state[f"w_{ticker}_input"] = round(value, 2)
 
+    # ── Procesar optimización Markowitz ANTES de crear widgets ──
+    opt_method = st.session_state.pop("pb_optimize_method", None)
+    if opt_method:
+        with st.spinner("Descargando datos y optimizando portafolio..."):
+            n = len(selected_tickers)
+            if n == 0:
+                st.error("Selecciona al menos un activo para optimizar.")
+            else:
+                initial_weights = [1.0 / n] * n
+                portfolio_data = build_portfolio_data(selected_tickers, initial_weights, history_years=DEFAULT_HISTORY_YEARS)
+                if portfolio_data is None:
+                    st.error("No se pudieron descargar los datos de mercado. Intenta nuevamente.")
+                else:
+                    try:
+                        result = run_markowitz_optimization(portfolio_data, opt_method)
+                        for ticker, w in zip(result.tickers, result.weights):
+                            st.session_state[f"w_{ticker}_input"] = round(float(w) * 100.0, 2)
+                        st.success(f"Optimización ({result.method}) completada. Sharpe: {result.sharpe_ratio:.3f}")
+                    except Exception as e:
+                        st.error(f"Error en optimización: {str(e)}")
+
     # Initialize only the active selection keys once so every asset remains editable.
     for ticker in selected_tickers:
         key = f"w_{ticker}_input"
@@ -153,20 +175,22 @@ def render_portfolio_builder() -> None:
                 unsafe_allow_html=True,
             )
 
-    # Normalize button: scale current percentages to sum to 100
-    col_norm, col_spacer = st.columns([1, 3])
+    # Normalize and optimization buttons
+    col_norm, col_sharpe, col_minvar = st.columns([1, 1, 1])
     with col_norm:
         st.button("🔁 Normalizar a 100%", on_click=_request_normalization)
+    with col_sharpe:
+        if st.button("📈 Maximizar Sharpe"):
+            st.session_state["pb_optimize_method"] = "max_sharpe"
+            st.rerun()
+    with col_minvar:
+        if st.button("🛡️ Minimizar Riesgo"):
+            st.session_state["pb_optimize_method"] = "min_variance"
+            st.rerun()
 
     # Build final weights list (fractions) and validation
-    weights_inputs = {
-        ticker: float(st.session_state.get(f"w_{ticker}_input", default_pct))
-        for ticker in selected_tickers
-    }
     total_pct = sum(weights_inputs.values())
     weights = [weights_inputs[t] / 100.0 for t in selected_tickers]
-
-    total_pct = sum(w * 100 for w in weights)
     is_valid = abs(total_pct - 100) < 0.5
 
     # Weight bar visualization
