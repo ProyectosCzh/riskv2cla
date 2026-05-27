@@ -52,7 +52,7 @@ def optimize_max_sharpe(
         return -s
 
     constraints = [{"type": "eq", "fun": lambda w: np.sum(w) - 1}]
-    bounds = [(0.0, 1.0)] * n
+    bounds = [(0.05, 1.0)] * n #minimo 5% cada activo
 
     result = minimize(
         neg_sharpe,
@@ -95,7 +95,7 @@ def optimize_min_variance(
         return float(w @ cov @ w)
 
     constraints = [{"type": "eq", "fun": lambda w: np.sum(w) - 1}]
-    bounds = [(0.0, 1.0)] * n
+    bounds = [(0.05, 1.0)] * n
 
     result = minimize(
         portfolio_variance,
