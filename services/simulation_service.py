@@ -2,8 +2,6 @@
 SmartRisk - Simulation Service
 Orchestrates Monte Carlo runs and persists results.
 """
-from __future__ import annotations
-
 import numpy as np
 from typing import Optional
 

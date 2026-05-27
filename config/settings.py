@@ -19,7 +19,6 @@ RISK_RESULTS_FILE = DATA_DIR / "risk_results.json"
 # ── App Meta ───────────────────────────────────────────────────────────────────
 APP_NAME = "SmartRisk"
 APP_VERSION = "1.0.0"
-APP_TAGLINE = "Simulación Estocástica & Asesoramiento Financiero"
 
 # ── Simulation Defaults ────────────────────────────────────────────────────────
 DEFAULT_SIMULATIONS = 5000
@@ -32,7 +31,7 @@ RISK_FREE_RATE = 0.035  # 3.5% annual (US T-bill proxy)
 
 # ── Portfolio Constraints ──────────────────────────────────────────────────────
 MAX_ASSETS = 5
-MIN_WEIGHT = 0.0
+MIN_WEIGHT = 0.05
 MAX_WEIGHT = 1.0
 
 # ── Market Data ────────────────────────────────────────────────────────────────

@@ -2,13 +2,12 @@
 SmartRisk - Markowitz Portfolio Optimization
 Efficient Frontier via SciPy SLSQP.
 """
-from __future__ import annotations
-
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 from dataclasses import dataclass
 from typing import Optional
+from config.settings import MIN_WEIGHT
 
 
 @dataclass
@@ -25,7 +24,7 @@ def _portfolio_stats(
     weights: np.ndarray,
     mu: np.ndarray,
     cov: np.ndarray,
-    rf: float = 0.045,
+    rf: float = 0.035,
 ) -> tuple[float, float, float]:
     """Return (expected_return, volatility, sharpe_ratio)."""
     ret = float(weights @ mu)
@@ -37,7 +36,7 @@ def _portfolio_stats(
 def optimize_max_sharpe(
     mu: np.ndarray,
     cov: np.ndarray,
-    rf: float = 0.045,
+    rf: float = 0.035,
     tickers: Optional[list[str]] = None,
 ) -> OptimizationResult:
     """
@@ -52,7 +51,7 @@ def optimize_max_sharpe(
         return -s
 
     constraints = [{"type": "eq", "fun": lambda w: np.sum(w) - 1}]
-    bounds = [(0.05, 1.0)] * n #minimo 5% cada activo
+    bounds = [(MIN_WEIGHT, 1.0)] * n
 
     result = minimize(
         neg_sharpe,
@@ -81,7 +80,7 @@ def optimize_max_sharpe(
 def optimize_min_variance(
     mu: np.ndarray,
     cov: np.ndarray,
-    rf: float = 0.045,
+    rf: float = 0.035,
     tickers: Optional[list[str]] = None,
 ) -> OptimizationResult:
     """
@@ -95,7 +94,8 @@ def optimize_min_variance(
         return float(w @ cov @ w)
 
     constraints = [{"type": "eq", "fun": lambda w: np.sum(w) - 1}]
-    bounds = [(0.05, 1.0)] * n
+    bounds = [(MIN_WEIGHT, 1.0)] * n
+
 
     result = minimize(
         portfolio_variance,
@@ -124,7 +124,7 @@ def optimize_min_variance(
 def generate_efficient_frontier(
     mu: np.ndarray,
     cov: np.ndarray,
-    rf: float = 0.045,
+    rf: float = 0.035,
     n_points: int = 60,
 ) -> pd.DataFrame:
     """
@@ -138,7 +138,7 @@ def generate_efficient_frontier(
 
     frontier = []
     x0 = np.ones(n) / n
-    bounds = [(0.0, 1.0)] * n
+    bounds = [(MIN_WEIGHT, 1.0)] * n
 
     for target in target_returns:
         constraints = [

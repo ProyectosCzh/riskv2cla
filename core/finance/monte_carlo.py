@@ -2,8 +2,6 @@
 SmartRisk - Monte Carlo Simulation Engine
 Uses Geometric Brownian Motion with Cholesky decomposition for correlated assets.
 """
-from __future__ import annotations
-
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass, field
@@ -157,7 +155,7 @@ def compute_sharpe(
     sigma: float,
     risk_free_rate: float = 0.035,
 ) -> float:
-    """Compute annualized Sharpe ratio."""
+    """Compute annualized Sharpe ratio from model parameters."""
     if sigma <= 0:
         return 0.0
     return (mu - risk_free_rate) / sigma

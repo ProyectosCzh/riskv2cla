@@ -1,8 +1,6 @@
 """
 SmartRisk - Financial Metrics Library
 """
-from __future__ import annotations
-
 import numpy as np
 import pandas as pd
 
@@ -21,7 +19,7 @@ def annualized_volatility(returns: np.ndarray, periods_per_year: int = 252) -> f
     return float(np.std(returns, ddof=1) * np.sqrt(periods_per_year))
 
 
-def sharpe_ratio(returns: np.ndarray, rf: float = 0.045, periods_per_year: int = 252) -> float:
+def sharpe_ratio(returns: np.ndarray, rf: float = 0.035, periods_per_year: int = 252) -> float:
     """Annualized Sharpe ratio."""
     mu = annualized_return(returns, periods_per_year)
     sigma = annualized_volatility(returns, periods_per_year)
@@ -30,7 +28,7 @@ def sharpe_ratio(returns: np.ndarray, rf: float = 0.045, periods_per_year: int =
     return (mu - rf) / sigma
 
 
-def sortino_ratio(returns: np.ndarray, rf: float = 0.045, periods_per_year: int = 252) -> float:
+def sortino_ratio(returns: np.ndarray, rf: float = 0.035, periods_per_year: int = 252) -> float:
     """Sortino ratio using downside deviation."""
     mu = annualized_return(returns, periods_per_year)
     daily_rf = (1 + rf) ** (1 / periods_per_year) - 1
@@ -83,7 +81,7 @@ def calmar_ratio(returns: np.ndarray, prices: pd.Series) -> float:
 def compute_all_metrics(
     returns: np.ndarray,
     prices: pd.Series,
-    rf: float = 0.045,
+    rf: float = 0.035,
 ) -> dict:
     """Compute a full set of metrics from return series and price series."""
     return {

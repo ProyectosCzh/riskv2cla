@@ -109,7 +109,7 @@ def render_results() -> None:
         st.rerun()
 
     # ── Export all ─────────────────────────────────────────────────────────
-    if 'display_df' in locals() and not display_df.empty:
+    if not display_df.empty:
         import io
 
         csv_buf = io.StringIO()
