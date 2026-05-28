@@ -33,7 +33,7 @@ def patch_repos_settings(data_dir, monkeypatch):
 @pytest.fixture
 def mock_market_data(monkeypatch):
     """Mock download_multiple to return fake price data (no yfinance needed)."""
-    def fake_download(tickers, years):
+    def fake_download(tickers, years, progress_callback=None):
         dates = pd.bdate_range("2020-01-01", "2024-12-31")
         n = len(dates)
         prices = {}

@@ -6,6 +6,8 @@ import json
 import streamlit as st
 
 from auth.session_manager import get_current_user
+from core.ds.tree_traversal import AssetCategoryTree
+from core.utils.string_validator import StringValidator
 from database.repositories import (
     get_portfolios_for_user,
     save_portfolio,
@@ -62,6 +64,17 @@ def render_portfolio_builder() -> None:
     all_tickers = [a["ticker"] for a in flat_assets]
     ticker_labels = {a["ticker"]: f"{a['ticker']} — {a['name']}" for a in flat_assets}
 
+    # ── Asset category tree (recursive traversal) ──────────────────────────
+    tree = AssetCategoryTree(assets_data)
+    with st.expander("🌳 Explorar Categorías de Activos (recorrido recursivo)"):
+        preorder = tree.traverse_preorder()
+        for entry in preorder:
+            st.markdown(entry["line"])
+        total_assets = sum(1 for e in preorder if e["is_leaf"])
+        st.caption(
+            f"Recorrido pre-order · {total_assets} activos en {len(tree.root.children)} categorías"
+        )
+
     # ── Asset selector ─────────────────────────────────────────────────────
     section_header("Selección de Activos", f"Elige entre {len(flat_assets)} instrumentos disponibles (máx. {MAX_ASSETS})")
 
@@ -82,7 +95,14 @@ def render_portfolio_builder() -> None:
 
     selected_tickers = list(dict.fromkeys(selected_tickers))[:MAX_ASSETS]
 
-    spacer(0.5)
+    # Validate tickers using StringValidator
+    invalid_tickers = []
+    for t in selected_tickers:
+        is_valid, _ = StringValidator.validate_ticker(t)
+        if not is_valid:
+            invalid_tickers.append(t)
+    if invalid_tickers:
+        alert_box(f"⚠️ Tickers inválidos detectados: {', '.join(invalid_tickers)}", "warning")
 
     # ── Weight assignment ──────────────────────────────────────────────────
     if not selected_tickers:
