@@ -1,6 +1,9 @@
 """
 SmartRisk - Simulator Page (Monte Carlo)
 """
+import io
+
+import pandas as pd
 import streamlit as st
 import numpy as np
 
@@ -361,7 +364,6 @@ def _render_results(result, portfolio_data, tickers: list, weights: list) -> Non
 
         # Historical stats per asset
         section_header("Estadísticas Históricas por Activo")
-        import pandas as pd
         hist_rows = []
         for t in tickers:
             s = portfolio_data.stats.get(t, {})
@@ -385,8 +387,6 @@ def _render_results(result, portfolio_data, tickers: list, weights: list) -> Non
     # ── Export ─────────────────────────────────────────────────────────────
     spacer()
     section_header("📤 Exportar Resultados")
-    import pandas as pd, io
-
     export_data = {
         "Métrica": [
             "Capital Inicial", "Aportaciones Mensuales DCA", "Horizonte (años)",

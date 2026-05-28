@@ -2,9 +2,6 @@
 Tests for Markowitz Portfolio Optimization.
 Run with: pytest tests/test_markowitz.py -v
 """
-import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-
 import numpy as np
 import pytest
 from core.finance.markowitz import (

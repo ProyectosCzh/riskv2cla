@@ -110,25 +110,3 @@ class TestTickerValidation:
         is_valid, _ = StringValidator.validate_ticker("BRK.A")
         assert is_valid is False
 
-
-class TestStringOperations:
-    def test_is_palindrome(self):
-        assert StringValidator.is_palindrome("Anita lava la tina") is True
-        assert StringValidator.is_palindrome("oso") is True
-        assert StringValidator.is_palindrome("hola") is False
-        assert StringValidator.is_palindrome("") is True
-
-    def test_count_words(self):
-        assert StringValidator.count_words("hola mundo") == 2
-        assert StringValidator.count_words("") == 0
-        assert StringValidator.count_words("uno") == 1
-
-    def test_count_vowels(self):
-        assert StringValidator.count_vowels("hola") == 2
-        assert StringValidator.count_vowels("AEIOU") == 5
-        assert StringValidator.count_vowels("bcdfg") == 0
-
-    def test_reverse_string(self):
-        assert StringValidator.reverse_string("hola") == "aloh"
-        assert StringValidator.reverse_string("") == ""
-        assert StringValidator.reverse_string("a") == "a"

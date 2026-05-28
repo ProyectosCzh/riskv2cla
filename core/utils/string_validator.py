@@ -55,19 +55,4 @@ class StringValidator:
             return False, f"'{ticker}' no es un ticker válido (1-5 letras mayúsculas)."
         return True, cleaned
 
-    @classmethod
-    def is_palindrome(cls, text: str) -> bool:
-        cleaned = re.sub(r"[^a-zA-Z0-9]", "", text).lower()
-        return cleaned == cleaned[::-1]
 
-    @classmethod
-    def count_words(cls, text: str) -> int:
-        return len(text.split())
-
-    @classmethod
-    def count_vowels(cls, text: str) -> int:
-        return sum(1 for c in text.lower() if c in "aeiouáéíóú")
-
-    @classmethod
-    def reverse_string(cls, text: str) -> str:
-        return text[::-1]

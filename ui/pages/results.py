@@ -1,6 +1,8 @@
 """
 SmartRisk - Results History Page
 """
+import io
+
 import streamlit as st
 import pandas as pd
 
@@ -175,8 +177,6 @@ def render_results() -> None:
 
     # ── Export all ─────────────────────────────────────────────────────────
     if not display_df.empty:
-        import io
-
         csv_buf = io.StringIO()
         display_df.to_csv(csv_buf, index=False)
         st.download_button(

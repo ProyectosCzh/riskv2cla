@@ -12,7 +12,6 @@ def init_session() -> None:
         "user": None,
         "current_page": "dashboard",
         "portfolio_draft": None,
-        "simulation_result": None,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -28,7 +27,7 @@ def login_session(user: dict) -> None:
 
 def logout_session() -> None:
     """Clear authentication from session."""
-    for key in ["authenticated", "user", "portfolio_draft", "simulation_result", "sim_portfolio_data"]:
+    for key in ["authenticated", "user", "portfolio_draft"]:
         if key in st.session_state:
             st.session_state[key] = None if key != "authenticated" else False
     st.session_state.current_page = "dashboard"

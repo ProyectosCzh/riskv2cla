@@ -2,9 +2,6 @@
 Tests for Financial Metrics Library.
 Run with: pytest tests/test_metrics.py -v
 """
-import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-
 import numpy as np
 import pandas as pd
 import pytest

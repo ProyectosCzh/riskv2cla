@@ -1,7 +1,4 @@
-import json
 import pytest
-import os
-from pathlib import Path
 
 from core.ds.queue import DownloadQueue
 from core.ds.stack import SimulationStack
