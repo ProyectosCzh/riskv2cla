@@ -19,6 +19,7 @@ def render_results() -> None:
     page_header("Historial de Simulaciones 📈", "Revisa y compara todos tus análisis anteriores.")
 
     simulations = get_simulations_for_user(user["id"])
+    sim_labels = [f"{s['config'].get('tickers',[])} · {s.get('created_at','')[:10]}" for s in simulations]
 
     if not simulations:
         alert_box(
@@ -57,7 +58,6 @@ def render_results() -> None:
     # ── Comparison view ────────────────────────────────────────────────────
     if len(simulations) >= 2:
         section_header("Comparar Simulaciones")
-        sim_labels = [f"{s['config'].get('tickers',[])} · {s.get('created_at','')[:10]}" for s in simulations]
         cols_compare = st.columns(2)
         with cols_compare[0]:
             sim_a_idx = st.selectbox("Simulación A", range(len(simulations)), format_func=lambda i: sim_labels[i], key="cmp_a")

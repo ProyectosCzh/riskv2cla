@@ -1,6 +1,6 @@
 """
-SmartRisk - JSON Persistence Layer
-All data is stored in JSON files under /data/.
+SmartRisk - JSON Persistence Layer (Per-User Sharding)
+Each user's data is stored in separate JSON files under /data/.
 """
 import json
 import os
@@ -10,10 +10,10 @@ from pathlib import Path
 from typing import Optional
 
 from config.settings import (
-    USERS_FILE,
-    PORTFOLIOS_FILE,
-    SIMULATIONS_FILE,
-    RISK_RESULTS_FILE,
+    USERS_DIR,
+    PORTFOLIOS_DIR,
+    SIMULATIONS_DIR,
+    RISK_RESULTS_DIR,
 )
 
 
@@ -50,7 +50,17 @@ def _new_id() -> str:
 # ── Users ─────────────────────────────────────────────────────────────────────
 
 def get_all_users() -> dict:
-    return _read(USERS_FILE)
+    """Read all per-user files and return merged dict."""
+    users = {}
+    for f in sorted(USERS_DIR.glob("*.json")):
+        data = _read(f)
+        if data.get("id"):
+            users[data["id"]] = data
+    return users
+
+
+def _user_path(user_id: str) -> Path:
+    return USERS_DIR / f"{user_id}.json"
 
 
 def get_user_by_email(email: str) -> Optional[dict]:
@@ -74,7 +84,6 @@ def create_user(
     role: str = "user",
     full_name: str = "",
 ) -> dict:
-    users = get_all_users()
     uid = _new_id()
     user = {
         "id": uid,
@@ -87,27 +96,26 @@ def create_user(
         "updated_at": _now(),
         "is_active": True,
     }
-    users[uid] = user
-    _write(USERS_FILE, users)
+    _write(_user_path(uid), user)
     return user
 
 
 def update_user(user_id: str, updates: dict) -> Optional[dict]:
-    users = get_all_users()
-    if user_id not in users:
+    path = _user_path(user_id)
+    if not path.exists():
         return None
-    users[user_id].update(updates)
-    users[user_id]["updated_at"] = _now()
-    _write(USERS_FILE, users)
-    return users[user_id]
+    user = _read(path)
+    user.update(updates)
+    user["updated_at"] = _now()
+    _write(path, user)
+    return user
 
 
 def delete_user(user_id: str) -> bool:
-    users = get_all_users()
-    if user_id not in users:
+    path = _user_path(user_id)
+    if not path.exists():
         return False
-    del users[user_id]
-    _write(USERS_FILE, users)
+    path.unlink()
     return True
 
 
@@ -129,17 +137,16 @@ def ensure_admin_exists() -> None:
 
 # ── Portfolios ─────────────────────────────────────────────────────────────────
 
-def _all_portfolios() -> dict:
-    return _read(PORTFOLIOS_FILE)
+def _portfolios_path(user_id: str) -> Path:
+    return PORTFOLIOS_DIR / f"{user_id}.json"
 
 
 def get_portfolios_for_user(user_id: str) -> list:
-    return [p for p in _all_portfolios().values() if p.get("user_id") == user_id]
+    return list(_read(_portfolios_path(user_id)).values())
 
 
 def save_portfolio(user_id: str, name: str, assets: list, weights: list) -> dict:
-    """assets: list of tickers; weights: list of floats summing to 1."""
-    portfolios = _all_portfolios()
+    portfolios = _read(_portfolios_path(user_id))
     pid = _new_id()
     record = {
         "id": pid,
@@ -151,31 +158,32 @@ def save_portfolio(user_id: str, name: str, assets: list, weights: list) -> dict
         "updated_at": _now(),
     }
     portfolios[pid] = record
-    _write(PORTFOLIOS_FILE, portfolios)
+    _write(_portfolios_path(user_id), portfolios)
     return record
 
 
 def delete_portfolio(portfolio_id: str) -> bool:
-    portfolios = _all_portfolios()
-    if portfolio_id not in portfolios:
-        return False
-    del portfolios[portfolio_id]
-    _write(PORTFOLIOS_FILE, portfolios)
-    return True
+    for f in PORTFOLIOS_DIR.glob("*.json"):
+        portfolios = _read(f)
+        if portfolio_id in portfolios:
+            del portfolios[portfolio_id]
+            _write(f, portfolios)
+            return True
+    return False
 
 
 # ── Risk Results ───────────────────────────────────────────────────────────────
 
-def _all_risk_results() -> dict:
-    return _read(RISK_RESULTS_FILE)
+def _risk_results_path(user_id: str) -> Path:
+    return RISK_RESULTS_DIR / f"{user_id}.json"
 
 
 def get_risk_profile_for_user(user_id: str) -> Optional[dict]:
-    return _all_risk_results().get(user_id)
+    data = _read(_risk_results_path(user_id))
+    return data if data.get("user_id") else None
 
 
 def save_risk_profile(user_id: str, profile: str, score: int, answers: list) -> dict:
-    results = _all_risk_results()
     record = {
         "user_id": user_id,
         "profile": profile,
@@ -183,25 +191,24 @@ def save_risk_profile(user_id: str, profile: str, score: int, answers: list) -> 
         "answers": answers,
         "created_at": _now(),
     }
-    results[user_id] = record
-    _write(RISK_RESULTS_FILE, results)
+    _write(_risk_results_path(user_id), record)
     return record
 
 
 # ── Simulations ────────────────────────────────────────────────────────────────
 
-def _all_simulations() -> dict:
-    return _read(SIMULATIONS_FILE)
+def _simulations_path(user_id: str) -> Path:
+    return SIMULATIONS_DIR / f"{user_id}.json"
 
 
 def get_simulations_for_user(user_id: str) -> list:
-    sims = _all_simulations()
-    user_sims = [s for s in sims.values() if s.get("user_id") == user_id]
+    sims = _read(_simulations_path(user_id))
+    user_sims = list(sims.values())
     return sorted(user_sims, key=lambda x: x.get("created_at", ""), reverse=True)
 
 
 def save_simulation(user_id: str, config: dict, summary: dict) -> dict:
-    sims = _all_simulations()
+    sims = _read(_simulations_path(user_id))
     sid = _new_id()
     record = {
         "id": sid,
@@ -211,14 +218,15 @@ def save_simulation(user_id: str, config: dict, summary: dict) -> dict:
         "created_at": _now(),
     }
     sims[sid] = record
-    _write(SIMULATIONS_FILE, sims)
+    _write(_simulations_path(user_id), sims)
     return record
 
 
 def delete_simulation(simulation_id: str) -> bool:
-    sims = _all_simulations()
-    if simulation_id not in sims:
-        return False
-    del sims[simulation_id]
-    _write(SIMULATIONS_FILE, sims)
-    return True
+    for f in SIMULATIONS_DIR.glob("*.json"):
+        sims = _read(f)
+        if simulation_id in sims:
+            del sims[simulation_id]
+            _write(f, sims)
+            return True
+    return False
