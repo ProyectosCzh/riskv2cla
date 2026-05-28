@@ -53,10 +53,6 @@ def get_all_users() -> dict:
     return _read(USERS_FILE)
 
 
-def get_user_by_id(user_id: str) -> Optional[dict]:
-    return get_all_users().get(user_id)
-
-
 def get_user_by_email(email: str) -> Optional[dict]:
     for user in get_all_users().values():
         if user.get("email", "").lower() == email.lower():
@@ -139,10 +135,6 @@ def _all_portfolios() -> dict:
 
 def get_portfolios_for_user(user_id: str) -> list:
     return [p for p in _all_portfolios().values() if p.get("user_id") == user_id]
-
-
-def get_portfolio_by_id(portfolio_id: str) -> Optional[dict]:
-    return _all_portfolios().get(portfolio_id)
 
 
 def save_portfolio(user_id: str, name: str, assets: list, weights: list) -> dict:

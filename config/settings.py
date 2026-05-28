@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 CACHE_DIR = DATA_DIR / "cache"
 EXPORTS_DIR = DATA_DIR / "exports"
-CONFIG_DIR = BASE_DIR / "config"
+# CONFIG_DIR is defined locally in modules that need it (market_service, portfolio_builder)
 
 # JSON persistence files
 USERS_FILE = DATA_DIR / "users.json"
@@ -40,6 +40,5 @@ MAX_HISTORY_YEARS = 10
 
 # ── Roles ─────────────────────────────────────────────────────────────────────
 ROLE_ADMIN = "admin"
-ROLE_USER = "user"
 
 
