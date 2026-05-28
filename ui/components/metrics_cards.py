@@ -52,19 +52,5 @@ def page_header(title: str, subtitle: str = "") -> None:
         st.markdown(f'<div class="page-subtitle">{subtitle}</div>', unsafe_allow_html=True)
 
 
-def risk_badge(profile: str) -> None:
-    """Render a colored risk profile badge."""
-    labels = {
-        "conservador": ("Conservador", "badge-conservador"),
-        "moderado":    ("Moderado",    "badge-moderado"),
-        "agresivo":    ("Agresivo",    "badge-agresivo"),
-    }
-    label, css_class = labels.get(profile, (profile.capitalize(), "badge-moderado"))
-    st.markdown(
-        f'<span class="profile-badge {css_class}">{label}</span>',
-        unsafe_allow_html=True,
-    )
-
-
 def spacer(height: int = 1) -> None:
     st.markdown(f'<div style="height:{height}rem"></div>', unsafe_allow_html=True)

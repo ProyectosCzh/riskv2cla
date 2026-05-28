@@ -2,7 +2,6 @@
 SmartRisk - Portfolio Builder Page
 """
 import json
-from pathlib import Path
 
 import streamlit as st
 
@@ -16,10 +15,7 @@ from ui.components.metrics_cards import (
     page_header, section_header, alert_box, tooltip_box, spacer
 )
 from services.portfolio_service import build_portfolio_data, run_markowitz_optimization
-from config.settings import MAX_ASSETS, DEFAULT_HISTORY_YEARS
-
-
-CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
+from config.settings import CONFIG_DIR, MAX_ASSETS, DEFAULT_HISTORY_YEARS
 
 
 def _load_assets() -> dict:

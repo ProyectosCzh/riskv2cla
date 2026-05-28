@@ -40,6 +40,5 @@ MAX_HISTORY_YEARS = 10
 
 # ── Roles ─────────────────────────────────────────────────────────────────────
 ROLE_ADMIN = "admin"
-ROLE_USER = "user"
 
 

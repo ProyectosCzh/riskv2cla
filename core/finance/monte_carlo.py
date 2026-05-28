@@ -150,27 +150,4 @@ def _compute_metrics(result: SimulationResult) -> dict:
     }
 
 
-def compute_sharpe(
-    mu: float,
-    sigma: float,
-    risk_free_rate: float = 0.035,
-) -> float:
-    """Compute annualized Sharpe ratio from model parameters."""
-    if sigma <= 0:
-        return 0.0
-    return (mu - risk_free_rate) / sigma
 
-
-def compute_sortino(
-    returns: np.ndarray,
-    risk_free_rate: float = 0.035,
-) -> float:
-    """Compute Sortino ratio from array of returns."""
-    annual_ret = float(np.mean(returns) * 252)
-    downside = returns[returns < 0]
-    if len(downside) == 0:
-        return float("inf")
-    downside_std = float(np.std(downside) * np.sqrt(252))
-    if downside_std == 0:
-        return 0.0
-    return (annual_ret - risk_free_rate) / downside_std
