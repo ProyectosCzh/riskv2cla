@@ -81,8 +81,8 @@ def main() -> None:
 
 def ensure_directories() -> None:
     """Create necessary data directories if they don't exist."""
-    from config.settings import DATA_DIR, CACHE_DIR, EXPORTS_DIR
-    for d in [DATA_DIR, CACHE_DIR, EXPORTS_DIR]:
+    from config.settings import DATA_DIR, CACHE_DIR, EXPORTS_DIR, USERS_DIR, PORTFOLIOS_DIR, SIMULATIONS_DIR, RISK_RESULTS_DIR
+    for d in [DATA_DIR, CACHE_DIR, EXPORTS_DIR, USERS_DIR, PORTFOLIOS_DIR, SIMULATIONS_DIR, RISK_RESULTS_DIR]:
         d.mkdir(parents=True, exist_ok=True)
 
 

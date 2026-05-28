@@ -10,11 +10,11 @@ CACHE_DIR = DATA_DIR / "cache"
 EXPORTS_DIR = DATA_DIR / "exports"
 CONFIG_DIR = BASE_DIR / "config"
 
-# JSON persistence files
-USERS_FILE = DATA_DIR / "users.json"
-PORTFOLIOS_FILE = DATA_DIR / "portfolios.json"
-SIMULATIONS_FILE = DATA_DIR / "simulations.json"
-RISK_RESULTS_FILE = DATA_DIR / "risk_results.json"
+# JSON persistence directories (per-user sharding)
+USERS_DIR = DATA_DIR / "users"
+PORTFOLIOS_DIR = DATA_DIR / "portfolios"
+SIMULATIONS_DIR = DATA_DIR / "simulations"
+RISK_RESULTS_DIR = DATA_DIR / "risk_results"
 
 # ── App Meta ───────────────────────────────────────────────────────────────────
 APP_NAME = "SmartRisk"
