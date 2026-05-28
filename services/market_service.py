@@ -3,10 +3,8 @@ SmartRisk - Market Service
 Provides asset catalog and risk profile data from config files.
 """
 import json
-from pathlib import Path
 
-
-CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
+from config.settings import CONFIG_DIR
 
 
 def get_asset_catalog() -> dict:

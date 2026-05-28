@@ -7,7 +7,7 @@ import pandas as pd
 from scipy.optimize import minimize
 from dataclasses import dataclass
 from typing import Optional
-from config.settings import MIN_WEIGHT
+from config.settings import MIN_WEIGHT, MAX_WEIGHT
 
 
 @dataclass
@@ -51,7 +51,7 @@ def optimize_max_sharpe(
         return -s
 
     constraints = [{"type": "eq", "fun": lambda w: np.sum(w) - 1}]
-    bounds = [(MIN_WEIGHT, 1.0)] * n
+    bounds = [(MIN_WEIGHT, MAX_WEIGHT)] * n
 
     result = minimize(
         neg_sharpe,
@@ -94,7 +94,7 @@ def optimize_min_variance(
         return float(w @ cov @ w)
 
     constraints = [{"type": "eq", "fun": lambda w: np.sum(w) - 1}]
-    bounds = [(MIN_WEIGHT, 1.0)] * n
+    bounds = [(MIN_WEIGHT, MAX_WEIGHT)] * n
 
 
     result = minimize(
@@ -138,7 +138,7 @@ def generate_efficient_frontier(
 
     frontier = []
     x0 = np.ones(n) / n
-    bounds = [(MIN_WEIGHT, 1.0)] * n
+    bounds = [(MIN_WEIGHT, MAX_WEIGHT)] * n
 
     for target in target_returns:
         constraints = [
