@@ -1,14 +1,37 @@
 """
 SmartRisk - Results History Page
 """
+import io
+
 import streamlit as st
 import pandas as pd
 
 from auth.session_manager import get_current_user
+from core.ds.sorting import SimulationSorter
 from database.repositories import get_simulations_for_user, delete_simulation
 from ui.components.metrics_cards import (
     page_header, section_header, alert_box, spacer, metric_card
 )
+
+SORT_OPTIONS = {
+    "Más recientes": ("created_at", True),
+    "Mejor capital final": ("summary.median_capital", True),
+    "Peor capital final": ("summary.median_capital", False),
+    "Mejor VaR 95%": ("summary.var_95_value", True),
+    "Mejor CAGR": ("summary.cagr_median", True),
+    "Peor CAGR": ("summary.cagr_median", False),
+}
+
+
+def _extract_value(sim: dict, dotted_key: str):
+    """Extract a value from a nested dict using dot notation."""
+    val = sim
+    for part in dotted_key.split("."):
+        if isinstance(val, dict):
+            val = val.get(part, 0)
+        else:
+            return 0
+    return val if isinstance(val, (int, float)) else 0
 
 
 def render_results() -> None:
@@ -28,11 +51,34 @@ def render_results() -> None:
         )
         return
 
-    # ── Summary table ──────────────────────────────────────────────────────
+    # ── Sort controls ──────────────────────────────────────────────────────
     section_header(f"Tienes {len(simulations)} simulación(es) guardada(s)")
+    col_sort, col_algo = st.columns([2, 1])
+    with col_sort:
+        selected_sort = st.selectbox(
+            "Ordenar por",
+            options=list(SORT_OPTIONS.keys()),
+            index=0,
+            key="sort_select",
+        )
+    sort_key, sort_reverse = SORT_OPTIONS[selected_sort]
+    with col_algo:
+        if sort_key == "created_at":
+            sims_sorted = simulations
+            algo_name = "—"
+        else:
+            def _sort_key_fn(s):
+                return _extract_value(s, sort_key)
+            sims_sorted = SimulationSorter.sort(simulations, key=_sort_key_fn, reverse=sort_reverse)
+            algo_name = SimulationSorter.ALGORITHM
+        st.markdown(
+            f"<div style='padding-top:1.7rem; text-align:right; color:#718096; font-size:0.82rem;'>"
+            f"Algoritmo: <strong>{algo_name}</strong> · {len(sims_sorted)} elementos</div>",
+            unsafe_allow_html=True,
+        )
 
     rows = []
-    for sim in simulations:
+    for sim in sims_sorted:
         cfg = sim.get("config", {})
         metrics = sim.get("summary", {})
         rows.append({
@@ -53,44 +99,26 @@ def render_results() -> None:
     display_df = df.drop(columns=["_id"])
     st.dataframe(display_df, use_container_width=True, hide_index=True)
 
-    spacer()
-
-    # ── Comparison view ────────────────────────────────────────────────────
-    if len(simulations) >= 2:
-        section_header("Comparar Simulaciones")
-        cols_compare = st.columns(2)
-        with cols_compare[0]:
-            sim_a_idx = st.selectbox("Simulación A", range(len(simulations)), format_func=lambda i: sim_labels[i], key="cmp_a")
-        with cols_compare[1]:
-            sim_b_idx = st.selectbox("Simulación B", range(len(simulations)), format_func=lambda i: sim_labels[i], key="cmp_b", index=min(1, len(simulations)-1))
-
-        sim_a = simulations[sim_a_idx]
-        sim_b = simulations[sim_b_idx]
-
-        col1, col2 = st.columns(2)
-        for col, sim, label in [(col1, sim_a, "Simulación A"), (col2, sim_b, "Simulación B")]:
-            with col:
-                cfg = sim.get("config", {})
-                m = sim.get("summary", {})
-                st.markdown(
-                    f"""
-                    <div style="background:white; border:1px solid #E2E8F0; border-radius:12px;
-                                padding:1.25rem; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-                        <div style="font-weight:700; color:#1B3A6B; margin-bottom:0.75rem;">{label}</div>
-                        <div style="font-size:0.85rem; color:#4A5568; line-height:1.9;">
-                            <div><strong>Activos:</strong> {', '.join(cfg.get('tickers',[]))}</div>
-                            <div><strong>Capital inicial:</strong> ${cfg.get('initial_capital',0):,.0f}</div>
-                            <div><strong>Horizonte:</strong> {cfg.get('projection_years','?')} años</div>
-                            <hr style="border-color:#EDF2F7; margin:0.5rem 0;">
-                            <div><strong>Capital mediano:</strong> ${m.get('median_capital',0):,.0f}</div>
-                            <div><strong>VaR 95%:</strong> ${m.get('var_95_value',0):,.0f}</div>
-                            <div><strong>Max Drawdown:</strong> {m.get('max_drawdown',0):.2%}</div>
-                            <div><strong>CAGR:</strong> {m.get('cagr_median',0):.2%}</div>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+    # ── Best / Worst highlight ─────────────────────────────────────────────
+    if sort_key != "created_at" and len(display_df) >= 2:
+        spacer(0.3)
+        cols_best = st.columns(2)
+        with cols_best[0]:
+            best = display_df.iloc[0]
+            st.markdown(
+                f"<div style='background:#F0FFF4; border:1px solid #C6F6D5; border-radius:10px; "
+                f"padding:0.7rem 1rem;'>"
+                f"🏆 <strong>Mejor:</strong> {best['Portafolio']} — {best['Capital Mediano']}</div>",
+                unsafe_allow_html=True,
+            )
+        with cols_best[1]:
+            worst = display_df.iloc[-1]
+            st.markdown(
+                f"<div style='background:#FFF5F5; border:1px solid #FED7D7; border-radius:10px; "
+                f"padding:0.7rem 1rem;'>"
+                f"⚠️ <strong>Peor:</strong> {worst['Portafolio']} — {worst['Capital Mediano']}</div>",
+                unsafe_allow_html=True,
+            )
 
     spacer()
 
@@ -110,8 +138,6 @@ def render_results() -> None:
 
     # ── Export all ─────────────────────────────────────────────────────────
     if not display_df.empty:
-        import io
-
         csv_buf = io.StringIO()
         display_df.to_csv(csv_buf, index=False)
         st.download_button(

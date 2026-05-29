@@ -88,14 +88,42 @@ def download_prices(ticker: str, years: int = 5) -> Optional[pd.Series]:
         return None
 
 
-def download_multiple(tickers: list[str], years: int = 5) -> dict[str, pd.Series]:
-    """Download prices for multiple tickers. Returns dict ticker -> Series."""
+from core.ds.queue import DownloadQueue
+
+
+def download_multiple(
+    tickers: list[str],
+    years: int = 5,
+    progress_callback=None,
+) -> dict[str, pd.Series]:
+    """Download prices for multiple tickers using a FIFO queue.
+    
+    Args:
+        tickers: List of ticker symbols to download.
+        years: Years of history to download.
+        progress_callback: Optional callable(processed, total, current_ticker).
+    
+    Returns:
+        Dict mapping ticker -> price Series.
+    """
+    queue = DownloadQueue()
+    for t in tickers:
+        queue.enqueue(t)
+
     result = {}
-    for ticker in tickers:
+    total = queue.size
+    processed = 0
+
+    while not queue.is_empty():
+        ticker = queue.dequeue()
         series = download_prices(ticker, years)
         if series is not None:
             result[ticker] = series
-        time.sleep(0.05)  # polite delay
+        processed += 1
+        if progress_callback:
+            progress_callback(processed, total, ticker)
+        time.sleep(0.05)
+
     return result
 
 

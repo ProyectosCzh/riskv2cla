@@ -86,12 +86,16 @@ def build_portfolio_data(
     tickers: list[str],
     weights: list[float],
     history_years: int = 5,
+    progress_callback=None,
 ) -> Optional[PortfolioData]:
     """
     Download market data and compute all portfolio statistics.
     Returns None if data is unavailable.
+    
+    Args:
+        progress_callback: Optional callable(processed, total, ticker) for UI progress.
     """
-    prices_dict = download_multiple(tickers, history_years)
+    prices_dict = download_multiple(tickers, history_years, progress_callback=progress_callback)
     missing = [t for t in tickers if t not in prices_dict]
     if missing:
         return None

@@ -1,26 +1,57 @@
 # SmartRisk — Robo-Advisor Académico
 
-**SmartRisk** es una plataforma de simulación estocástica y asesoramiento financiero construida con Streamlit. Permite construir portafolios de inversión a partir de un catálogo de 50+ activos reales (acciones, ETFs, bonos, REITs, commodities), simular su evolución mediante el Movimiento Browniano Geométrico (GBM) con DCA, y evaluar métricas de riesgo como VaR, CVaR, Sharpe Ratio, Sortino Ratio y Max Drawdown. Incluye optimización de Markowitz (máximo Sharpe y mínima varianza) con restricción de mínimo 5% por activo.
+**SmartRisk** es una plataforma de simulación financiera y asesoramiento automatizado de portafolios, desarrollada como proyecto final de la materia **SI210 — Estructura de Datos**. Implementa los conceptos fundamentales de la materia aplicados a un problema real: la construcción, optimización y simulación de portafolios de inversión.
 
 > **Nota:** Todas las simulaciones son proyecciones estadísticas con fines académicos. No constituyen asesoría financiera ni garantizan rendimientos futuros.
 
 ---
 
+## Mapeo de Contenidos del Sílabo SI210 vs Implementación
+
+SmartRisk aplica los siguientes contenidos de la materia **Estructura de Datos (SI210)**:
+
+| Unidad | Concepto del Sílabo | Implementación en SmartRisk |
+|---|---|---|
+| **I** | Tipos Abstractos de Datos (TAD) | `PortfolioData`, `SimulationConfig`, `SimulationResult`, `OptimizationResult` |
+| **I** | Eventos / Excepciones | Jerarquía `SmartRiskError` → `AuthError`, `ValidationError`, `DataError`, `SimulationError` |
+| **III** | Arreglos (Vectores) | `np.ndarray` para pesos, retornos, vectores de media/volatilidad |
+| **III** | Matrices (2D) | Matriz de covarianza (`np.outer`), matriz de correlación (`DataFrame.corr()`), operaciones `w @ cov @ w` |
+| **IV** | Manejo de Cadenas | `StringValidator`: validación de email (regex), username, contraseña, tickers |
+| **V** | Listas Enlazadas Simples | `_Node` en `DownloadQueue` (FIFO con lista enlazada simple) |
+| **V** | Listas Doblemente Enlazadas | `_Node` con `prev`/`next` en `SimulationStack` (pila LIFO con lista doblemente enlazada) |
+| **VI** | Pilas (Stack) | `SimulationStack` — pila LIFO para historial de simulaciones en sesión (`push`, `pop`, `peek`) |
+| **VII** | Colas (Queue) | `DownloadQueue` — cola FIFO para descarga secuencial de tickers (`enqueue`, `dequeue`) |
+| **VIII** | Técnicas de Ordenamiento | `SimulationSorter` — QuickSort y MergeSort para ordenar resultados de simulación |
+| **IX** | Técnicas de Hashing | `bcrypt` para hash de contraseñas (12 rounds), `uuid4()` para IDs únicos |
+| **XI** | Archivos (Lectura/Escritura) | Persistencia JSON en `database/repositories.py` con escritura atómica (`tmp` + `os.replace`) |
+| **XI** | Archivos (Caché) | Caché de precios en JSON con TTL de 6 horas en `core/market/downloader.py` |
+| **XII** | Ciencia de Datos / Expresiones Regulares | `pandas`, `numpy`, regex para validación de email |
+
+### POO (Programación Orientada a Objetos)
+
+| Concepto POO | Implementación |
+|---|---|
+| **Clases** | `PortfolioData`, `StringValidator`, `SimulationStack`, `DownloadQueue`, `SimulationSorter`, `AssetCategoryTree`, `AssetTreeNode`, y 4 dataclasses |
+| **Herencia** | `AuthError(SmartRiskError)`, `ValidationError(SmartRiskError)`, `DataError(SmartRiskError)`, `SimulationError(SmartRiskError)` |
+| **Encapsulación** | `PortfolioData` con propiedades (`@property`) que ocultan cálculos internos |
+| **Dataclasses** | `OptimizationResult`, `SimulationConfig`, `SimulationResult` |
+
+---
+
 ## Stack Tecnológico
 
-| Área | Tecnología | Versión |
-|---|---|---|
-| Lenguaje | Python | ≥ 3.11 |
-| UI Framework | Streamlit | ≥ 1.32.0 |
-| Datos de mercado | yfinance | ≥ 0.2.36 |
-| Cálculo numérico | NumPy | ≥ 1.26.0 |
-| Optimización | SciPy (SLSQP) | ≥ 1.12.0 |
-| Manipulación de datos | Pandas | ≥ 2.2.0 |
-| Visualizaciones | Plotly | ≥ 5.19.0 |
-| Autenticación | bcrypt | ≥ 4.1.2 |
-| Testing | pytest | ≥ 8.0.0 |
-| Persistencia | JSON (4 archivos) | — |
-| Cache de mercado | JSON (archivos por ticker/años) | — |
+| Área | Tecnología |
+|---|---|
+| Lenguaje | Python ≥ 3.11 |
+| UI Framework | Streamlit |
+| Datos de mercado | yfinance |
+| Cálculo numérico | NumPy |
+| Optimización | SciPy (SLSQP) |
+| Manipulación de datos | Pandas |
+| Visualizaciones | Plotly |
+| Autenticación | bcrypt |
+| Testing | pytest (179 tests) |
+| Persistencia | JSON (4 archivos sharded por usuario) |
 
 ---
 
@@ -47,19 +78,7 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-La aplicación abrirá automáticamente en `http://localhost:8501`.
-
-> **Windows:** Todos los archivos JSON se leen con `encoding="utf-8"` de forma predeterminada. No requiere configuración adicional.
-
----
-
-## Credenciales por Defecto
-
-| Rol | Usuario | Contraseña |
-|---|---|---|
-| Administrador | `admin` | `Admin1234!` |
-
-El usuario administrador se crea automáticamente en el primer inicio. Desde el panel de administración puedes crear, editar y asignar roles a otros usuarios.
+**Credenciales por defecto:** `admin` / `Admin1234!` (se crea automáticamente al primer inicio).
 
 ---
 
@@ -68,382 +87,348 @@ El usuario administrador se crea automáticamente en el primer inicio. Desde el 
 ```
 smartrisk/
 ├── app.py                              # Punto de entrada
-├── requirements.txt                    # Dependencias (8 paquetes)
+├── requirements.txt                    # Dependencias
 ├── README.md
 │
 ├── .streamlit/
 │   └── config.toml                     # Tema visual + servidor
 │
 ├── config/
-│   ├── settings.py                     # Constantes globales (paths, defaults, tasas)
-│   ├── assets.json                     # Catálogo de 50 activos (7 categorías)
-│   └── risk_profiles.json             # 3 perfiles de riesgo con asignación sugerida
+│   ├── settings.py                     # Constantes globales
+│   ├── assets.json                     # 50 activos en 7 categorías
+│   └── risk_profiles.json              # 3 perfiles de riesgo
 │
 ├── auth/
-│   ├── auth_service.py                 # Validación de registro y autenticación
+│   ├── auth_service.py                 # Registro y autenticación
 │   ├── login.py                        # UI de login y registro
 │   ├── password_utils.py              # Hashing bcrypt (hash + verify)
-│   └── session_manager.py             # Gestión de sesión en Streamlit
+│   └── session_manager.py             # Gestión de sesión
 │
 ├── database/
-│   └── repositories.py                # CRUD sobre JSON (usuarios, portafolios, simulaciones, riesgo)
+│   └── repositories.py                # CRUD sobre JSON sharded por usuario
 │
 ├── core/
+│   ├── ds/                             # 📌 Estructuras de Datos (proyecto)
+│   │   ├── queue.py                    # DownloadQueue — Cola FIFO (lista enlazada simple)
+│   │   ├── stack.py                    # SimulationStack — Pila LIFO (lista doblemente enlazada)
+│   │   ├── sorting.py                  # SimulationSorter — QuickSort / MergeSort
+│   │   └── tree_traversal.py          # AssetCategoryTree — Recorrido recursivo (pre-order / post-order)
+│   ├── exceptions.py                   # Jerarquía SmartRiskError
 │   ├── finance/
 │   │   ├── metrics.py                  # Sharpe, Sortino, VaR, CVaR, Max Drawdown, Calmar
 │   │   ├── markowitz.py               # Optimización Markowitz (SLSQP) + frontera eficiente
-│   │   └── monte_carlo.py             # Motor GBM con DCA, percentiles y métricas
+│   │   └── monte_carlo.py             # Motor GBM con DCA
 │   ├── market/
-│   │   └── downloader.py              # Descarga yfinance + caché JSON con TTL
+│   │   └── downloader.py              # Descarga yfinance + caché JSON + DownloadQueue
 │   └── utils/
-│       └── __init__.py                 # (vacío — validadores eliminados por no usarse)
+│       └── string_validator.py         # StringValidator — validación de cadenas
 │
 ├── services/
-│   ├── portfolio_service.py           # Orquestación: descarga → PortfolioData → optimización
-│   ├── simulation_service.py          # Orquestación: Monte Carlo → persistencia
-│   ├── market_service.py              # Catálogo de activos, estadísticas, perfiles de riesgo
-│   └── user_service.py               # CRUD de usuarios para administración
+│   ├── portfolio_service.py           # PortfolioData + build_portfolio_data
+│   ├── simulation_service.py          # Monte Carlo → persistencia
+│   └── market_service.py              # Catálogo de activos y perfiles
 │
 ├── ui/
 │   ├── components/
-│   │   ├── sidebar.py                 # Navegación lateral con contexto de usuario
-│   │   ├── charts.py                  # 6 funciones de gráficos Plotly
-│   │   └── metrics_cards.py           # Cards, alertas, tooltips, badges
+│   │   ├── sidebar.py                 # Navegación lateral
+│   │   ├── charts.py                  # 6 gráficos Plotly
+│   │   └── metrics_cards.py           # Cards, alertas, tooltips
 │   ├── pages/
-│   │   ├── dashboard.py               # Panel principal con métricas y onboarding
-│   │   ├── risk_quiz.py              # Quiz de 5 preguntas → perfil de riesgo
-│   │   ├── portfolio_builder.py      # Constructor con inputs numéricos y optimización
-│   │   ├── simulator.py              # Simulador Monte Carlo con 5 pestañas de gráficos
-│   │   ├── results.py                # Historial de simulaciones + exportación CSV
-│   │   ├── admin_panel.py            # CRUD de usuarios y estadísticas globales
-│   │   └── profile.py                # Edición de perfil y cambio de contraseña
+│   │   ├── dashboard.py               # Panel principal
+│   │   ├── risk_quiz.py              # Quiz de perfil de riesgo
+│   │   ├── portfolio_builder.py      # Constructor con pesos y optimización
+│   │   ├── simulator.py              # Simulador Monte Carlo + SimulationStack
+│   │   ├── results.py                # Historial + SimulationSorter
+│   │   ├── admin_panel.py            # CRUD de usuarios
+│   │   └── profile.py                # Perfil de usuario
 │   └── styles/
-│       └── custom_css.py             # 257 líneas de CSS personalizado
+│       └── custom_css.py             # CSS personalizado
 │
 ├── tests/
-│   ├── test_monte_carlo.py           # 17 tests: GBM, DCA, métricas, Sharpe/Sortino
-│   ├── test_markowitz.py             # 14 tests: optimización, frontera, restricciones
-│   └── test_metrics.py               # 22 tests: todas las métricas financieras
+│   ├── test_ds.py                    # 30 tests: Queue, Stack, Sorter, Tree
+│   ├── test_string_validator.py      # 14 tests: StringValidator
+│   ├── test_auth.py                  # 16 tests: Auth y registro
+│   ├── test_repositories.py          # 29 tests: CRUD sobre JSON
+│   ├── test_metrics.py               # 22 tests: Métricas financieras
+│   ├── test_markowitz.py             # 14 tests: Optimización
+│   ├── test_monte_carlo.py           # 17 tests: Simulación GBM
+│   ├── test_services.py              # 24 tests: Servicios
+│   ├── test_integration.py           # 3 tests: Flujo completo
+│   └── test_ui_smoke.py             # 4 tests: UI smoke
 │
-└── data/                              # Directorios creados automáticamente
-    ├── users.json                     # Usuarios registrados
-    ├── portfolios.json                # Portafolios guardados
-    ├── simulations.json               # Resultados de simulaciones
-    ├── risk_results.json             # Resultados del quiz de riesgo
-    ├── cache/                         # Precios históricos cacheados (JSON)
-    └── exports/                       # CSVs descargados por el usuario
+└── data/                              # Creado automáticamente al ejecutar
+    ├── users/                         # JSON por usuario
+    ├── portfolios/                    # JSON por usuario
+    ├── simulations/                   # JSON por usuario
+    ├── risk_results/                  # JSON por usuario
+    ├── cache/                         # Precios cacheados (TTL 6h)
+    └── exports/                       # CSVs descargados
 ```
+
+---
+
+## Implementación de Estructuras de Datos
+
+### 1. Cola FIFO — `DownloadQueue` (`core/ds/queue.py`)
+
+**Unidad VII del sílabo.** Implementación de una cola (FIFO) usando lista enlazada simple.
+
+```python
+class _Node:
+    def __init__(self, data):
+        self.data = data
+        self.next = None
+
+class DownloadQueue:
+    def enqueue(self, item)    # Agrega al final
+    def dequeue(self)          # Quita del frente
+    def peek(self)             # Mira el frente sin eliminar
+    def is_empty(self)         # Verifica si está vacía
+```
+
+**Aplicación real:** En `core/market/downloader.py`, los tickers a descargar se encolan y se procesan secuencialmente en orden FIFO, con barra de progreso en la UI.
+
+**Defensa:** "Cada ticker se pone en una cola y se procesa en el orden que llegó — igual que una fila de banco, pero para descargar datos de mercado."
+
+---
+
+### 2. Pila LIFO — `SimulationStack` (`core/ds/stack.py`)
+
+**Unidad VI del sílabo.** Implementación de una pila (LIFO) usando lista doblemente enlazada.
+
+```python
+class _Node:
+    def __init__(self, data, prev=None, next=None):
+        self.data = data
+        self.prev = prev
+        self.next = next
+
+class SimulationStack:
+    def push(self, item)       # Apila al tope
+    def pop(self)              # Desapila del tope
+    def peek(self)             # Mira el tope sin eliminar
+    def items(self)            # Retorna todos desde el tope
+```
+
+**Aplicación real:** En `ui/pages/simulator.py`, cada simulación ejecutada se apila. El usuario puede "Descartar última" (pop) o "Recuperar" (push desde redo stack). Se muestra el tamaño de la pila.
+
+**Defensa:** "Cada simulación se apila. La última en entrar es la primera en mostrarse. Si descartas, haces pop — LIFO puro."
+
+---
+
+### 3. Ordenamiento — `SimulationSorter` (`core/ds/sorting.py`)
+
+**Unidad VIII del sílabo.** Implementación de MergeSort y QuickSort.
+
+```python
+class SimulationSorter:
+    def merge_sort(items, key, reverse)    # O(n log n) — estable
+    def quick_sort(items, key, reverse)    # O(n log n) promedio
+    def sort(items, key, reverse)          # Elige algoritmo según tamaño
+```
+
+**Aplicación real:** En `ui/pages/results.py`, las simulaciones guardadas pueden ordenarse por capital final, VaR, CAGR, etc. El algoritmo se selecciona automáticamente: QuickSort para más de 10 elementos, MergeSort para menos.
+
+**Defensa:** "Podemos ordenar las simulaciones por mejor capital o peor VaR con QuickSort o MergeSort, dependiendo de la cantidad de elementos."
+
+---
+
+### 4. Recorrido Recursivo de Árbol — `AssetCategoryTree` (`core/ds/tree_traversal.py`)
+
+**Unidad II (Recursividad) y Unidad I (Árboles) del sílabo.** Construcción de un árbol de categorías de activos y recorrido recursivo pre-order y post-order.
+
+```python
+class AssetTreeNode:
+    def __init__(self, name, children, data):
+        self.name = name
+        self.children = children
+        self.data = data
+
+class AssetCategoryTree:
+    def traverse_preorder(self)   # Recorrido recursivo pre-order
+    def traverse_postorder(self)  # Recorrido recursivo post-order
+    def find_by_ticker(self)      # Búsqueda recursiva
+```
+
+**Aplicación real:** En `ui/pages/portfolio_builder.py`, se muestra un expander con el árbol completo de categorías de activos, generado mediante recorrido recursivo pre-order.
+
+**Defensa:** "Los activos están organizados en un árbol de categorías. Usamos recursividad para recorrerlo en pre-order y mostrarlo al usuario."
+
+---
+
+### 5. Manejo de Cadenas — `StringValidator` (`core/utils/string_validator.py`)
+
+**Unidad IV del sílabo.** Operaciones de validación y manipulación de strings.
+
+```python
+class StringValidator:
+    def validate_email(email)        # Regex + longitud
+    def validate_password(password)  # Longitud mínima/máxima
+    def validate_username(username)  # Caracteres permitidos + longitud
+    def sanitize_ticker(ticker)      # Limpieza y validación de tickers
+    def validate_ticker(ticker)      # Validación completa
+```
+
+**Aplicación real:** En `auth/auth_service.py` para validar registro de usuarios. En `ui/pages/portfolio_builder.py` para validar tickers seleccionados.
+
+**Defensa:** "Cada entrada de usuario pasa por validación de cadenas: email con regex, contraseña con longitud mínima, tickers con formato estricto."
+
+---
+
+### 6. Jerarquía de Excepciones — `SmartRiskError` (`core/exceptions.py`)
+
+**Unidad I del sílabo (Eventos/Excepciones).** Jerarquía de excepciones personalizadas con herencia.
+
+```python
+SmartRiskError           # Base — todas heredan de esta
+├── AuthError            # Errores de autenticación
+├── ValidationError      # Errores de validación de entrada
+├── DataError            # Errores de persistencia
+└── SimulationError      # Errores de simulación
+```
+
+**Aplicación real:** Captura específica de errores en `auth_service.py`, `login.py`, `admin_panel.py`. Cada excepción tiene un código único (`[AUTH_ERROR]`, `[VALIDATION_ERROR]`).
+
+**Defensa:** "Tenemos una jerarquía de herencia de 5 niveles. Cada tipo de error se captura por separado para dar mensajes precisos al usuario."
+
+---
+
+### 7. Tipos Abstractos de Datos (TAD)
+
+**Unidad I del sílabo.** Clases que encapsulan datos y operaciones.
+
+| Clase | Archivo | Propósito |
+|---|---|---|
+| `PortfolioData` | `services/portfolio_service.py` | Contenedor con propiedades computadas (`@property`) |
+| `OptimizationResult` | `core/finance/markowitz.py` | Dataclass con pesos, retorno, volatilidad, Sharpe |
+| `SimulationConfig` | `core/finance/monte_carlo.py` | Dataclass con parámetros de simulación |
+| `SimulationResult` | `core/finance/monte_carlo.py` | Dataclass con resultados, percentiles y métricas |
+
+**Defensa:** "Cada TAD encapsula sus datos y expone métodos para operar sobre ellos, ocultando la complejidad interna."
+
+---
+
+### 8. Hashing
+
+**Unidad IX del sílabo.** Implementado mediante:
+
+- **bcrypt** (`auth/password_utils.py`): Hash de contraseñas con 12 rounds de sal. Cada hash es único aunque la contraseña sea la misma.
+- **UUID v4** (`database/repositories.py`): Identificadores únicos universales para usuarios, portafolios, simulaciones.
+
+**Defensa:** "Las contraseñas se almacenan con hash bcrypt — aunque dos usuarios tengan la misma contraseña, sus hashes son distintos por la sal aleatoria. Los IDs son UUIDs que garantizan unicidad global."
+
+---
+
+### 9. Archivos / Persistencia
+
+**Unidad XI del sílabo.** Sistema completo de lectura y escritura de archivos JSON:
+
+- **Lectura**: `_read(filepath)` con manejo de `JSONDecodeError`
+- **Escritura atómica**: `_write(filepath, data)` escribe a `.tmp` y luego hace `os.replace()` (operación atómica en Windows)
+- **Sharding**: Cada usuario tiene su propio archivo JSON para portafolios, simulaciones y perfil de riesgo
+- **Caché**: Precios de mercado cacheados en JSON con TTL de 6 horas
+
+**Defensa:** "Los datos persisten en archivos JSON. La escritura atómica evita corrupción ante cortes de energía. Cada usuario tiene sus propios archivos (sharding), lo que permite escalar sin base de datos."
 
 ---
 
 ## Arquitectura y Flujo de Datos
 
 ```
-yfinance API
-    │
-    ▼
-core/market/downloader.py
-    ├── download_prices() → data/cache/TICKER_Ny.json (TTL 6h)
-    ├── compute_stats()   → {mu, sigma, max_drawdown} por activo
-    └── build_correlation_matrix() → returns_df + corr_matrix
-    │
-    ▼
-services/portfolio_service.py
-    └── PortfolioData (tickers, weights, prices, stats, returns_df, corr_matrix)
-        ├── portfolio_mu      = weights @ mu_vec
-        ├── portfolio_sigma   = sqrt(weights @ outer(sigma,sigma)*corr @ weights)
-        ├── portfolio_sharpe  = (mu - rf) / sigma
-        ├── portfolio_returns → weighted daily returns
-        ├── historical_metrics → Sharpe, Sortino, VaR, CVaR, Drawdown, Calmar
-        └── risk_profile_check → compara volatilidad con perfil de usuario
-            │
-            ├──► core/finance/markowitz.py
-            │     ├── optimize_max_sharpe()  → OptimizationResult
-            │     ├── optimize_min_variance() → OptimizationResult
-            │     └── generate_efficient_frontier() → DataFrame
-            │
-            └──► core/finance/monte_carlo.py
-                  ├── run_monte_carlo() → SimulationResult
-                  │     └── GBM: S(t+dt) = S(t)*exp((μ-σ²/2)dt + σ√dt·Z)
-                  └── _compute_metrics() → median, VaR, CVaR, drawdown, CAGR
-                        │
-                        ▼
-                  database/repositories.py
-                  └── save_simulation() → data/simulations.json
-                        │
-                        ▼
-                  ui/pages/
-                  ├── dashboard.py → cards + checklist
-                  ├── simulator.py → 5 charts (fan, histogram, frontier, historical, correlation)
-                  └── results.py   → tabla + comparación + CSV
+Usuario → UI (Streamlit)
+              │
+              ▼
+         auth/ → login / registro / sesión
+              │
+              ▼
+         services/portfolio_service.py
+              │  PortfolioData (TAD)
+              │  properties: mu, sigma, sharpe
+              │
+              ├──► core/market/downloader.py
+              │       DownloadQueue → descarga FIFO + caché JSON
+              │
+              ├──► core/finance/markowitz.py
+              │       SLSQP → max_sharpe / min_variance
+              │
+              └──► core/finance/monte_carlo.py
+                      GBM → simulation + métricas
+                      SimulationStack → historial LIFO
+                           │
+                           ▼
+                      database/repositories.py
+                      JSON write atómico → data/simulations/
+                           │
+                           ▼
+                      ui/pages/simulator.py
+                      + results.py (SimulationSorter → ordenamiento)
 ```
-
-### Patrones Clave
-
-- **Cache-first download**: `downloader.py` verifica TTL de 6h antes de consultar yfinance.
-- **Atomic JSON writes**: `repositories.py:_write()` usa `os.replace()` (compatible con Windows).
-- **Session state como transient store**: `simulation_result` y `sim_portfolio_data` viven en `st.session_state` para persistir entre interacciones.
-- **Pre-processing trigger pattern**: Botones de optimización/normalización en `portfolio_builder.py` establecen flags en session_state que se procesan ANTES de crear widgets en el siguiente render.
-- **Service layer**: `portfolio_service.py` y `simulation_service.py` median entre UI y core, coordinando descargas, cálculos y persistencia.
-
----
-
-## Módulos Explicados
-
-### 5.1 Config (`config/`)
-
-- **`settings.py`**: Única fuente de verdad para constantes: `RISK_FREE_RATE = 0.035`, `MAX_ASSETS = 5`, `MIN_WEIGHT = 0.05`, `DEFAULT_SIMULATIONS = 5000`, rutas de archivos, etc.
-- **`assets.json`**: 50 activos clasificados en 7 categorías (Acciones Tecnología, Finanzas, Salud, Energía, ETFs Renta Variable, ETFs Renta Fija, Commodities y Alternativos, Tecnología e Innovación).
-- **`risk_profiles.json`**: 3 perfiles (Conservador/Moderado/Agresivo) con `max_volatility`, `recommended_allocation` y `suggested_tickers`.
-
-### 5.2 Autenticación (`auth/`)
-
-- **`password_utils.py`**: `hash_password()` con bcrypt (12 rounds), `verify_password()`.
-- **`auth_service.py`**: `register_user()` valida email con regex, username único, password ≥ 8 chars. `authenticate_user()` busca por email o username.
-- **`session_manager.py`**: `init_session()`, `login_session()`, `logout_session()`, `is_authenticated()`, `is_admin()`. Maneja `st.session_state` para auth y datos de sesión.
-
-### 5.3 Base de Datos (`database/`)
-
-- **`repositories.py`**: CRUD completo sobre 4 archivos JSON usando `_read()`/`_write()` atómicos. UUIDs como claves. Funciones: `create_user`, `get_user_by_email`, `save_portfolio`, `get_portfolios_for_user`, `save_simulation`, `save_risk_profile`, etc.
-
-### 5.4 Core Financiero (`core/finance/`)
-
-#### `metrics.py` — Métricas de Riesgo-Retorno
-
-| Función | Fórmula | Descripción |
-|---|---|---|
-| `annualized_return(returns)` | `(∏(1+r))^(252/n) - 1` | Retorno geométrico anualizado |
-| `annualized_volatility(returns)` | `σ(r) · √252` | Volatilidad anualizada |
-| `sharpe_ratio(returns, rf=0.035)` | `(μ - rf) / σ` | Exceso de retorno por unidad de riesgo total |
-| `sortino_ratio(returns, rf=0.035)` | `(μ - rf) / σ_downside` | Exceso de retorno por unidad de riesgo downside |
-| `max_drawdown(prices)` | `min((P - peak) / peak)` | Máxima caída desde pico a valle |
-| `value_at_risk(returns, 0.95)` | `-P5(returns)` | Pérdida mínima esperada en el peor 5% |
-| `conditional_var(returns, 0.95)` | `E[returns \| returns ≤ -VaR]` | Pérdida promedio más allá del VaR |
-| `calmar_ratio(returns, prices)` | `μ / \|MDD\|` | Retorno por unidad de máximo drawdown |
-| `compute_all_metrics(returns, prices, rf)` | Agrega todas las anteriores | Diccionario completo |
-
-#### `markowitz.py` — Optimización de Portafolio
-
-- **`_portfolio_stats(weights, mu, cov, rf)`**: Calcula retorno, volatilidad y Sharpe para un vector de pesos.
-- **`optimize_max_sharpe(mu, cov, rf, tickers)`**: Maximiza Sharpe vía SLSQP. Bounds `[MIN_WEIGHT, 1.0]` (= `[0.05, 1.0]`), constraint `sum(weights)=1`.
-- **`optimize_min_variance(mu, cov, rf, tickers)`**: Minimiza varianza. Mismas constraints.
-- **`generate_efficient_frontier(mu, cov, rf, n_points=60)`**: Barre retornos objetivo y minimiza varianza para cada uno. Retorna DataFrame con `volatility`, `return`, `sharpe`.
-
-#### `monte_carlo.py` — Simulación GBM
-
-- **`SimulationConfig`**: Dataclass con tickers, weights, mu_vec, sigma_vec, corr_matrix, capital, DCA, años, simulaciones, seed.
-- **`run_monte_carlo(cfg)`**: Simula portafolio como proceso GBM escalar:
-  1. `port_mu = weights @ mu_vec`
-  2. `port_var = weights @ (outer(sigma,sigma) * corr) @ weights`
-  3. Genera `Z ~ N(0,1)` de forma `(n_sims, n_steps)`
-  4. `log_returns = (port_mu - 0.5 * port_sigma²) · dt + port_sigma · √dt · Z`
-  5. `paths = initial_capital · exp(cumsum(log_returns))`
-  6. **DCA**: Aportaciones mensuales crecen con `growth_factor = cum_returns[:, -1] / cum_returns[:, step]`
-- **`_compute_metrics(result)`**: expected_capital, median_capital, var_95, cvar_95, max_drawdown, prob_loss, cagr_median, total_invested.
-- **`compute_sharpe(mu, sigma, risk_free_rate)`**: Sharpe desde parámetros del modelo (no desde returns).
-- **`compute_sortino(returns, risk_free_rate)`**: Sortino desde returns (downside < 0).
-
-### 5.5 Core de Mercado (`core/market/`)
-
-- **`downloader.py`**: `download_prices(ticker, years)` → descarga vía `yfinance.download()` y cachea como JSON. `download_multiple(tickers, years)` con `time.sleep(0.05)` entre requests. `compute_returns()` → log returns. `compute_stats()` → mu, sigma, max_drawdown. `build_correlation_matrix()` → Pearson sobre returns alineados.
-
-### 5.6 Servicios (`services/`)
-
-- **`portfolio_service.py`**: `PortfolioData` (clase contenedora), `build_portfolio_data()` (descarga + computa stats), `run_markowitz_optimization()` (envuelve optimizadores con `RISK_FREE_RATE`), `compute_efficient_frontier()`. La clase tiene propiedades calculadas (`portfolio_mu`, `portfolio_sigma`, `portfolio_sharpe`), `portfolio_returns()`, `historical_metrics()`, `risk_profile_check()`.
-- **`simulation_service.py`**: `build_simulation_config()` + `run_simulation()` + `persist_simulation()`.
-- **`market_service.py`**: `get_asset_catalog()`, `get_asset_info()`, `fetch_asset_stats()`, `get_quick_stats_table()`, `get_risk_profiles()`.
-- **`user_service.py`**: `list_users()`, `get_user()`, `deactivate_user()`, `activate_user()`, `promote_to_admin()`, `remove_user()`.
-
-### 5.7 UI (`ui/`)
-
-#### Páginas (7 pantallas):
-
-1. **Dashboard** (`dashboard.py`): 4 metric cards, checklist de 4 pasos, resumen de perfil de riesgo, últimas 3 simulaciones.
-2. **Perfil de Riesgo** (`risk_quiz.py`): 5 preguntas con radio buttons, clasifica en Conservador/Moderado/Agresivo, muestra perfil con icono y tickers sugeridos.
-3. **Constructor de Portafolio** (`portfolio_builder.py`): Multiselect de hasta 5 activos, inputs numéricos por activo, botones Normalizar/Max Sharpe/Min Riesgo, barra visual de pesos, guardar/recuperar.
-4. **Simulador Monte Carlo** (`simulator.py`): Selector de portafolio, parámetros (capital, DCA, ventana histórica, proyección, simulaciones), 8 metric cards, 5 tabs (Proyección/Distribución/Frontera Eficiente/Histórico/Correlaciones), exportación CSV.
-5. **Resultados** (`results.py`): Tabla de simulaciones guardadas, comparación lado a lado, eliminar, exportar CSV.
-6. **Admin Panel** (`admin_panel.py`): 3 tabs (lista/crear/editar usuarios), 4 métricas globales.
-7. **Perfil de Usuario** (`profile.py`): 3 tabs (información/seguridad/estadísticas).
-
-#### Componentes:
-
-- **`sidebar.py`**: Logo, info de usuario, 6 botones de navegación + admin + logout.
-- **`charts.py`**: `plot_monte_carlo_paths()` (fan chart con bandas percentiles), `plot_final_value_histogram()` (histograma + VaR/líneas), `plot_efficient_frontier()` (scatter coloreado por Sharpe), `plot_portfolio_weights()` (donut), `plot_historical_performance()` (series normalizadas), `plot_correlation_heatmap()` (heatmap RdBu).
-- **`metrics_cards.py`**: `metric_card()`, `alert_box()`, `tooltip_box()`, `section_header()`, `page_header()`, `risk_badge()`, `spacer()`.
-
-### 5.8 Tests (`tests/`)
-
-```bash
-pytest tests/ -v    # 54 tests, ~11s
-```
-
-- **`test_metrics.py`** (22 tests): annualized_return (4), annualized_volatility (3), sharpe_ratio (4), sortino_ratio (2), max_drawdown (4), VaR/CVaR (3), compute_all_metrics (2).
-- **`test_markowitz.py`** (14 tests): max_sharpe (7), min_variance (4), efficient_frontier (3).
-- **`test_monte_carlo.py`** (17 tests): GBM basics (7), metrics (6), DCA (1), Sharpe/Sortino (4).
 
 ---
 
 ## Guía de Usuario
 
-### Flujo de Trabajo Recomendado
+### Flujo de Trabajo
 
 ```
 Registro / Login
        │
        ▼
-   Dashboard          ← Resumen de portafolios, simulaciones y perfil
+   Dashboard
        │
        ▼
-   Perfil de Riesgo   ← Quiz de 5 preguntas → Conservador / Moderado / Agresivo
+   Perfil de Riesgo   ← Quiz → Conservador / Moderado / Agresivo
        │
        ▼
-   Constructor de     ← Selecciona hasta 5 activos del catálogo
-   Portafolio         → Asigna pesos con inputs numéricos
-                      → Normaliza a 100% u optimiza con Markowitz
-                      → Guarda el portafolio
+   Constructor de     ← Selecciona activos, asigna pesos
+   Portafolio         → Normaliza / Optimiza (Markowitz)
        │
        ▼
-   Simulador Monte    ← Configura capital, DCA, horizonte, escenarios
-   Carlo              → Ejecuta simulación GBM
-                      → Muestra 5 gráficos + 8 métricas
-       │
+   Simulador Monte    ← GBM con DCA, miles de escenarios
+   Carlo              → 8 métricas + 5 gráficos
+       │                Pila LIFO: navega entre simulaciones
        ▼
-   Resultados         ← Historial de simulaciones guardadas
-                      → Comparación lado a lado + exportación CSV
+   Resultados         ← Historial ordenable por métrica
+                       → Mejor / Peor escenario destacado
 ```
 
-### Pantalla por Pantalla
+### Páginas del Sistema
 
-#### 1. Login / Register
-- Dos tabs: Iniciar Sesión y Crear Cuenta.
-- Registro: nombre completo, username, email (validado con regex), contraseña (mín. 8 caracteres).
-- Demo account: `admin` / `Admin1234!`.
-
-#### 2. Dashboard
-- Bienvenida personalizada con nombre de usuario.
-- 4 tarjetas: portafolios guardados, simulaciones ejecutadas, perfil de riesgo, última simulación.
-- Checklist de 4 pasos (Perfil → Portafolio → Simular → Resultados).
-- Resumen del perfil de riesgo con icono, puntaje y descripción.
-
-#### 3. Perfil de Riesgo
-- 5 preguntas con 3 opciones cada una (puntaje 1-3 → total 5-15).
-- Clasificación: Conservador (5-8), Moderado (9-11), Agresivo (12-15).
-- Muestra el perfil asignado con max_volatility, asignación recomendada y tickers sugeridos.
-
-#### 4. Constructor de Portafolio
-- Catálogo plano de 50 activos con búsqueda en multiselect (máx. 5).
-- Inputs numéricos por activo (0-100%, step 0.1).
-- Botón **"Normalizar a 100%"**: reescala proporcionalmente los valores actuales.
-- Botón **"Maximizar Sharpe"**: descarga datos históricos, ejecuta optimización Markowitz, asigna pesos óptimos.
-- Botón **"Minimizar Riesgo"**:同上, minimiza varianza.
-- Barra visual de pesos con colores por activo + leyenda.
-- Validación de suma (debe ser 100% ± 0.5%).
-- Guardar con nombre personalizado + auto-carga al Simulador.
-
-#### 5. Simulador Monte Carlo
-- Selecciona portafolio (borrador o guardado).
-- Parámetros: capital inicial ($100-$10M), DCA mensual ($0-$100K), ventana histórica (1/3/5/7/10 años), horizonte (1-20 años), simulaciones (1K-15K).
-- Alerta de perfil de riesgo si la volatilidad excede el límite del perfil.
-- **8 tarjetas de métricas**: Capital Mediano, VaR 95%, Max Drawdown, Prob. Pérdida, Sharpe, Volatilidad, Retorno Esperado, CVaR 95%.
-- **5 pestañas de gráficos Plotly**:
-  1. **Proyección**: Fan chart con bandas 5-95% y 25-75%, líneas P5/P50/P95.
-  2. **Distribución**: Histograma de capital final + donut de pesos.
-  3. **Frontera Eficiente**: Scatter coloreado por Sharpe, marcadores para portafolio actual y óptimo.
-  4. **Histórico**: Rendimiento normalizado (base 100) + tabla de stats por activo.
-  5. **Correlaciones**: Heatmap de correlación entre activos.
-- Exportación CSV con todas las métricas.
-
-#### 6. Resultados
-- Tabla de todas las simulaciones guardadas (portafolio, capital, VaR, drawdown, CAGR, fecha).
-- Comparación lado a lado: selecciona 2 simulaciones y compara métricas.
-- Eliminar simulaciones individuales.
-- Exportar historial completo a CSV.
-
-#### 7. Perfil de Usuario
-- Tab Información: avatar con iniciales, nombre, email, username (solo lectura).
-- Tab Seguridad: cambio de contraseña con verificación de actual + confirmación.
-- Tab Estadísticas: portafolios guardados, simulaciones ejecutadas, perfil de riesgo, mejor simulación.
-
-#### 8. Admin Panel
-- Solo accesible con rol `admin`.
-- 4 métricas globales: usuarios totales, admins, simulaciones totales, portafolios totales.
-- Lista de usuarios en DataFrame, crear usuario, editar/eliminar usuario.
-
----
-
-## Seguridad
-
-- **Contraseñas**: hasheadas con bcrypt (12 rounds). Nunca almacenadas en texto plano.
-- **Sesiones**: `st.session_state` con limpieza completa al cerrar sesión (incluye datos de simulación y portafolio).
-- **Escritura atómica**: `os.replace()` para evitar corrupción de archivos JSON en Windows.
-- **Encoding**: `utf-8` en toda lectura/escritura de archivos para evitar UnicodeDecodeError.
-- **Validación de email**: expresión regular en `auth_service.py`.
-- **Error handling**: Barrera `try/except` global en `app.py`. Admins ven traceback completo; usuarios ven mensaje amigable.
-
----
-
-## Configuración
-
-### `config/settings.py`
-Constantes principales editables:
-- `RISK_FREE_RATE = 0.035` — Tasa libre de riesgo (proxy T-Bill)
-- `MAX_ASSETS = 5` — Máximo de activos por portafolio
-- `MIN_WEIGHT = 0.05` — Peso mínimo por activo (5%)
-- `DEFAULT_SIMULATIONS = 5000` — Escenarios por defecto
-- `MAX_SIMULATIONS = 15000` — Escenarios máximos
-- `DEFAULT_INITIAL_CAPITAL = 10000`
-- `CACHE_EXPIRY_HOURS = 6` — TTL del caché de precios
-
-### `config/assets.json`
-Agrega o modifica activos en las 7 categorías. Cada activo requiere: `ticker`, `name`, `type` (stock|etf|bond_etf|commodity_etf|reit).
-
-### `config/risk_profiles.json`
-Define perfiles con: `label`, `color`, `icon`, `description`, `max_volatility`, `recommended_allocation`, `suggested_tickers`.
-
-### `.streamlit/config.toml`
-Tema visual (colores institucionales #1B3A6B), server headless, CORS deshabilitado.
+1. **Dashboard**: Resumen con checklist de 4 pasos, perfil de riesgo, últimas simulaciones.
+2. **Perfil de Riesgo**: 5 preguntas → puntaje 5-15 → clasificación en Conservador/Moderado/Agresivo.
+3. **Constructor de Portafolio**: Catálogo de 50 activos, asignación de pesos, normalización, optimización Markowitz, árbol recursivo de categorías.
+4. **Simulador Monte Carlo**: Configuración de parámetros, descarga FIFO con barra de progreso, simulación GBM, pila LIFO de historial de sesión, 5 pestañas de visualización, exportación CSV.
+5. **Resultados**: Historial de simulaciones con ordenamiento por métrica (QuickSort/MergeSort), mejor/peor escenario destacados, comparación lado a lado.
+6. **Admin Panel**: CRUD de usuarios, métricas globales.
+7. **Perfil de Usuario**: Información personal, cambio de contraseña, estadísticas.
 
 ---
 
 ## Tests
 
 ```bash
-pytest tests/ -v
+pytest tests/ -v    # 179 tests
 ```
-
-**54 tests** distribuidos:
 
 | Archivo | Tests | Cobertura |
 |---|---|---|
-| `test_metrics.py` | 22 | Sharpe, Sortino, VaR, CVaR, Drawdown, Calmar, Return, Volatility |
-| `test_markowitz.py` | 14 | Max Sharpe, Min Variance, Efficient Frontier, constraints |
-| `test_monte_carlo.py` | 17 | GBM paths, percentiles, DCA, Sharpe/Sortino, metrics |
+| `test_ds.py` | 30 | Queue, Stack, Sorting, Tree |
+| `test_string_validator.py` | 14 | Email, password, username, ticker |
+| `test_auth.py` | 16 | Registro, autenticación |
+| `test_repositories.py` | 29 | CRUD usuarios, portafolios, simulaciones |
+| `test_metrics.py` | 22 | Sharpe, Sortino, VaR, CVaR, Drawdown |
+| `test_markowitz.py` | 14 | Optimización, frontera eficiente |
+| `test_monte_carlo.py` | 17 | GBM, DCA, percentiles |
+| `test_services.py` | 24 | PortfolioData, simulación |
+| `test_integration.py` | 3 | Flujo completo |
+| `test_ui_smoke.py` | 4 | Carga de UI |
 
 ---
 
-## Mejoras Futuras
+## Seguridad
 
-- **Base de datos real**: Migrar de JSON a SQLite/PostgreSQL para concurrencia multi-usuario.
-- **Logging estructurado**: Reemplazar prints por `logging` con niveles.
-- **Simulaciones paralelas**: Distribuir escenarios Monte Carlo en múltiples hilos.
-- **Exportación a PDF**: Reporte resumido con gráficos y métricas.
-- **Modo oscuro**: Tema alternativo para sesiones nocturnas.
-- **Alertas personalizadas**: Notificaciones cuando una simulación supera umbrales de riesgo.
-- **Zoom sincronizado entre gráficos**: Al hacer zoom en un gráfico, actualizar los demás.
-- **Breadcrumbs**: Indicación jerárquica de ubicación en el flujo.
-- **Lazy loading**: Descargar datos de mercado solo al acceder al Simulador.
-
----
-
-## Deploy
-
-### Streamlit Cloud
-1. Subir el repositorio a GitHub.
-2. Ir a [share.streamlit.io](https://share.streamlit.io).
-3. Conectar el repositorio y apuntar a `app.py`.
-
-### Render
-1. Crear un nuevo Web Service.
-2. Build command: `pip install -r requirements.txt`.
-3. Start command: `streamlit run app.py --server.port $PORT --server.headless true`.
+- **Contraseñas**: hasheadas con bcrypt (12 rounds). Nunca en texto plano.
+- **Sesiones**: `st.session_state` con limpieza completa al cerrar sesión.
+- **Escritura atómica**: `os.replace()` para evitar corrupción de archivos.
+- **Validación de entrada**: `StringValidator` en registro (email regex, username, password).
+- **Error handling**: Barrera `try/except` global + jerarquía de excepciones personalizadas.

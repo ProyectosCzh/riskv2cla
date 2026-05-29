@@ -3,7 +3,8 @@ Tests for auth module.
 Run with: pytest tests/test_auth.py -v
 """
 import pytest
-from auth.auth_service import register_user, authenticate_user, AuthError
+from auth.auth_service import register_user, authenticate_user
+from core.exceptions import AuthError, ValidationError
 from auth.password_utils import hash_password, verify_password
 
 
@@ -50,15 +51,15 @@ class TestRegisterUser:
             register_user("user2", "same@test.com", "StrongP@ss1")
 
     def test_short_username(self, patch_repos_settings):
-        with pytest.raises(AuthError, match="3 caracteres"):
+        with pytest.raises(ValidationError, match="3 caracteres"):
             register_user("ab", "ab@test.com", "StrongP@ss1")
 
     def test_short_password(self, patch_repos_settings):
-        with pytest.raises(AuthError, match="8 caracteres"):
+        with pytest.raises(ValidationError, match="8 caracteres"):
             register_user("validuser", "valid@test.com", "Short1")
 
     def test_invalid_email(self, patch_repos_settings):
-        with pytest.raises(AuthError, match="correo"):
+        with pytest.raises(ValidationError, match="correo"):
             register_user("validuser", "notanemail", "StrongP@ss1")
 
 

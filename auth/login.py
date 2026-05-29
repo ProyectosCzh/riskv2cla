@@ -2,7 +2,8 @@
 SmartRisk - Login Page
 """
 import streamlit as st
-from auth.auth_service import authenticate_user, register_user, AuthError
+from auth.auth_service import authenticate_user, register_user
+from core.exceptions import AuthError, ValidationError
 from auth.session_manager import login_session
 
 
@@ -99,5 +100,5 @@ def _render_register_form() -> None:
             try:
                 user = register_user(username, email, password, full_name)
                 st.success("✅ Cuenta creada exitosamente. Ahora puedes iniciar sesión.")
-            except AuthError as e:
+            except (AuthError, ValidationError) as e:
                 st.error(str(e))

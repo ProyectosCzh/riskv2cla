@@ -1,19 +1,16 @@
 """
 SmartRisk - Authentication Service
 """
-import re
 from typing import Optional
 
 from auth.password_utils import hash_password, verify_password
+from core.exceptions import AuthError, ValidationError
+from core.utils.string_validator import StringValidator
 from database.repositories import (
     create_user,
     get_user_by_email,
     get_user_by_username,
 )
-
-
-class AuthError(Exception):
-    pass
 
 
 def register_user(
@@ -26,16 +23,23 @@ def register_user(
     username = username.strip()
     email = email.strip().lower()
 
-    if len(username) < 3:
-        raise AuthError("El nombre de usuario debe tener al menos 3 caracteres.")
+    is_valid, msg = StringValidator.validate_username(username)
+    if not is_valid:
+        raise ValidationError(msg)
+
     if get_user_by_username(username):
         raise AuthError("Ese nombre de usuario ya está en uso.")
+
+    is_valid, msg = StringValidator.validate_email(email)
+    if not is_valid:
+        raise ValidationError(msg)
+
     if get_user_by_email(email):
         raise AuthError("Ese correo electrónico ya está registrado.")
-    if len(password) < 8:
-        raise AuthError("La contraseña debe tener al menos 8 caracteres.")
-    if not re.match(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$", email):
-        raise AuthError("Ingresa un correo electrónico válido.")
+
+    is_valid, msg = StringValidator.validate_password(password)
+    if not is_valid:
+        raise ValidationError(msg)
 
     hashed = hash_password(password)
     user = create_user(

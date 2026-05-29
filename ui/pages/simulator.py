@@ -1,10 +1,14 @@
 """
 SmartRisk - Simulator Page (Monte Carlo)
 """
+import io
+
+import pandas as pd
 import streamlit as st
 import numpy as np
 
 from auth.session_manager import get_current_user
+from core.ds.stack import SimulationStack
 from database.repositories import (
     get_portfolios_for_user,
     get_risk_profile_for_user,
@@ -28,7 +32,6 @@ from config.settings import (
     DEFAULT_PROJECTION_YEARS,
     DEFAULT_HISTORY_YEARS,
     MAX_SIMULATIONS,
-    RISK_FREE_RATE,
 )
 
 
@@ -145,8 +148,19 @@ def render_simulator() -> None:
     run_btn = st.button("🚀 Ejecutar Simulación Monte Carlo", type="primary", use_container_width=True)
 
     if run_btn:
-        with st.spinner(f"⚙️ Descargando datos de mercado ({history_years} años)..."):
-            portfolio_data = build_portfolio_data(tickers, weights, history_years)
+        progress_bar = st.progress(0.0, text="Preparando descarga...")
+
+        def _on_download_progress(processed: int, total: int, ticker: str):
+            progress_bar.progress(
+                processed / total,
+                text=f"⬇️ Descargando {ticker}... ({processed}/{total})",
+            )
+
+        portfolio_data = build_portfolio_data(
+            tickers, weights, history_years,
+            progress_callback=_on_download_progress,
+        )
+        progress_bar.empty()
 
         if portfolio_data is None:
             alert_box("❌ No se pudieron descargar los datos de mercado. Verifica los tickers e intenta nuevamente.", "danger")
@@ -173,18 +187,53 @@ def render_simulator() -> None:
 
         # Persist
         persist_simulation(user["id"], portfolio_data, result)
-        st.session_state.simulation_result = result
-        st.session_state.sim_portfolio_data = portfolio_data
+
+        # Push to simulation stack (LIFO)
+        stack = st.session_state.get("sim_stack", SimulationStack())
+        stack.push((result, portfolio_data, tickers, weights))
+        st.session_state.sim_stack = stack
+        st.session_state.sim_redo = SimulationStack()
 
         st.success("✅ Simulación completada. Resultados guardados.")
         st.rerun()
 
-    # ── Display results if available ───────────────────────────────────────
-    result = st.session_state.get("simulation_result")
-    portfolio_data = st.session_state.get("sim_portfolio_data")
+    # ── Display from stack (LIFO - top is most recent) ────────────────────
+    stack = st.session_state.get("sim_stack")
+    redo = st.session_state.get("sim_redo", SimulationStack())
 
-    if result and portfolio_data:
+    if stack and not stack.is_empty():
+        result, portfolio_data, tickers, weights = stack.peek()
+        _render_stack_navigation(stack, redo)
         _render_results(result, portfolio_data, tickers, weights)
+
+
+def _render_stack_navigation(stack, redo) -> None:
+    """Render LIFO stack navigation for simulation history."""
+    if stack.size <= 1 and redo.is_empty():
+        return
+    st.markdown("---")
+    cols = st.columns([1, 2, 1, 2])
+    with cols[0]:
+        if stack.size > 1 and st.button("⏪ Descartar última", use_container_width=True):
+            redo.push(stack.pop())
+            st.rerun()
+    with cols[1]:
+        total = stack.size + redo.size
+        st.markdown(
+            f"<div style='text-align:center; padding:0.3rem; color:#4A5568;'>"
+            f"📚 <strong>Pila de simulación</strong> — {stack.size} de {total} en sesión"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+    with cols[2]:
+        if not redo.is_empty() and st.button("Recuperar ⏩", use_container_width=True):
+            stack.push(redo.pop())
+            st.rerun()
+    with cols[3]:
+        if stack.size > 0 and st.button("🗑️ Vaciar historial", use_container_width=True):
+            stack.clear()
+            redo.clear()
+            st.rerun()
 
 
 def _render_results(result, portfolio_data, tickers: list, weights: list) -> None:
@@ -314,7 +363,6 @@ def _render_results(result, portfolio_data, tickers: list, weights: list) -> Non
 
         # Historical stats per asset
         section_header("Estadísticas Históricas por Activo")
-        import pandas as pd
         hist_rows = []
         for t in tickers:
             s = portfolio_data.stats.get(t, {})
@@ -338,8 +386,6 @@ def _render_results(result, portfolio_data, tickers: list, weights: list) -> Non
     # ── Export ─────────────────────────────────────────────────────────────
     spacer()
     section_header("📤 Exportar Resultados")
-    import pandas as pd, io
-
     export_data = {
         "Métrica": [
             "Capital Inicial", "Aportaciones Mensuales DCA", "Horizonte (años)",
