@@ -5,7 +5,8 @@ import streamlit as st
 import pandas as pd
 
 from auth.session_manager import get_current_user, is_admin
-from auth.auth_service import register_user, AuthError
+from auth.auth_service import register_user
+from core.exceptions import AuthError, ValidationError
 from auth.password_utils import hash_password
 from database.repositories import (
     get_all_users,
@@ -90,7 +91,7 @@ def render_admin_panel() -> None:
                         update_user(user_obj["id"], {"role": "admin"})
                     st.success(f"✅ Usuario '{new_user}' creado exitosamente.")
                     st.rerun()
-                except AuthError as e:
+                except (AuthError, ValidationError) as e:
                     st.error(str(e))
 
     # ── Edit / Delete ──────────────────────────────────────────────────────

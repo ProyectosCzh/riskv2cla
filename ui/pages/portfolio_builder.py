@@ -6,6 +6,8 @@ import json
 import streamlit as st
 
 from auth.session_manager import get_current_user
+from core.ds.tree_traversal import AssetCategoryTree
+from core.utils.string_validator import StringValidator
 from database.repositories import (
     get_portfolios_for_user,
     save_portfolio,
@@ -32,21 +34,23 @@ def _flat_asset_list(assets_data: dict) -> list[dict]:
     return flat
 
 
-def _normalize_weight_values(weight_map: dict[str, float]) -> dict[str, float]:
-    """Scale current weights so they sum to 100.
-
-    If all current values are zero, return an equal allocation.
-    """
-    total = sum(weight_map.values())
-    if total <= 0:
-        equal_weight = 100.0 / len(weight_map)
-        return {ticker: equal_weight for ticker in weight_map}
-    return {ticker: (value / total) * 100.0 for ticker, value in weight_map.items()}
-
-
 def _request_normalization() -> None:
     """Request a weight normalization on the next render pass."""
     st.session_state["pb_normalize_requested"] = True
+
+
+def _equal_weights_dict(tickers: list[str]) -> dict[str, float]:
+    n = len(tickers)
+    if n == 0:
+        return {}
+    base = round(100.0 / n, 2)
+    weights = {t: base for t in tickers}
+    diff = round(100.0 - sum(weights.values()), 2)
+    if diff != 0:
+        step = 0.01 if diff > 0 else -0.01
+        for i in range(int(abs(diff) * 100)):
+            weights[tickers[i % n]] = round(weights[tickers[i % n]] + step, 2)
+    return weights
 
 
 def render_portfolio_builder() -> None:
@@ -61,6 +65,17 @@ def render_portfolio_builder() -> None:
     ticker_map = {a["ticker"]: a for a in flat_assets}
     all_tickers = [a["ticker"] for a in flat_assets]
     ticker_labels = {a["ticker"]: f"{a['ticker']} — {a['name']}" for a in flat_assets}
+
+    # ── Asset category tree (recursive traversal) ──────────────────────────
+    tree = AssetCategoryTree(assets_data)
+    with st.expander("🌳 Explorar Categorías de Activos (recorrido recursivo)"):
+        preorder = tree.traverse_preorder()
+        for entry in preorder:
+            st.markdown(entry["line"])
+        total_assets = sum(1 for e in preorder if e["is_leaf"])
+        st.caption(
+            f"Recorrido pre-order · {total_assets} activos en {len(tree.root.children)} categorías"
+        )
 
     # ── Asset selector ─────────────────────────────────────────────────────
     section_header("Selección de Activos", f"Elige entre {len(flat_assets)} instrumentos disponibles (máx. {MAX_ASSETS})")
@@ -82,7 +97,23 @@ def render_portfolio_builder() -> None:
 
     selected_tickers = list(dict.fromkeys(selected_tickers))[:MAX_ASSETS]
 
-    spacer(0.5)
+    # Auto-normalize weights when asset selection changes
+    prev = st.session_state.get("pb_prev_tickers", [])
+    if set(selected_tickers) != set(prev):
+        equal_weights = _equal_weights_dict(selected_tickers)
+        for ticker, value in equal_weights.items():
+            st.session_state[f"w_{ticker}_input"] = value
+        st.session_state["pb_prev_tickers"] = selected_tickers
+        st.rerun()
+
+    # Validate tickers using StringValidator
+    invalid_tickers = []
+    for t in selected_tickers:
+        is_valid, _ = StringValidator.validate_ticker(t)
+        if not is_valid:
+            invalid_tickers.append(t)
+    if invalid_tickers:
+        alert_box(f"⚠️ Tickers inválidos detectados: {', '.join(invalid_tickers)}", "warning")
 
     # ── Weight assignment ──────────────────────────────────────────────────
     if not selected_tickers:
@@ -93,16 +124,11 @@ def render_portfolio_builder() -> None:
     section_header("Asignación de Pesos", "Ingresa el porcentaje de inversión en cada activo.")
     tooltip_box("La suma de todos los pesos debe ser exactamente 100%. El sistema lo valida automáticamente.")
 
-    default_pct = int(100 / len(selected_tickers)) if selected_tickers else 0
-
     if st.session_state.pop("pb_normalize_requested", False):
-        current_weights = {
-            ticker: float(st.session_state.get(f"w_{ticker}_input", default_pct))
-            for ticker in selected_tickers
-        }
-        normalized_weights = _normalize_weight_values(current_weights)
-        for ticker, value in normalized_weights.items():
-            st.session_state[f"w_{ticker}_input"] = round(value, 2)
+        equal_weights = _equal_weights_dict(selected_tickers)
+        for ticker, value in equal_weights.items():
+            st.session_state[f"w_{ticker}_input"] = value
+        st.rerun()
 
     # ── Procesar optimización Markowitz ANTES de crear widgets ──
     opt_method = st.session_state.pop("pb_optimize_method", None)
@@ -126,13 +152,14 @@ def render_portfolio_builder() -> None:
                         st.error(f"Error en optimización: {str(e)}")
 
     # Initialize only the active selection keys once so every asset remains editable.
+    equal_weights = _equal_weights_dict(selected_tickers)
     for ticker in selected_tickers:
         key = f"w_{ticker}_input"
         if key not in st.session_state:
-            st.session_state[key] = float(default_pct)
+            st.session_state[key] = equal_weights[ticker]
 
     weights_inputs: dict[str, float] = {
-        ticker: float(st.session_state.get(f"w_{ticker}_input", default_pct))
+        ticker: float(st.session_state.get(f"w_{ticker}_input", 0))
         for ticker in selected_tickers
     }
 
@@ -162,7 +189,7 @@ def render_portfolio_builder() -> None:
                 key=key,
                 label_visibility="collapsed",
             )
-        weights_inputs[ticker] = float(st.session_state.get(key, default_pct))
+        weights_inputs[ticker] = float(st.session_state.get(key, 0))
         with col_val:
             st.markdown(
                 f"<div style='padding-top:0.5rem; font-weight:700; color:#1B3A6B;'>{weights_inputs[ticker]:.1f}%</div>",

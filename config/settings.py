@@ -23,6 +23,7 @@ APP_VERSION = "1.0.0"
 # ── Simulation Defaults ────────────────────────────────────────────────────────
 DEFAULT_SIMULATIONS = 5000
 MAX_SIMULATIONS = 15000
+
 DEFAULT_INITIAL_CAPITAL = 10000
 DEFAULT_MONTHLY_DCA = 0
 DEFAULT_PROJECTION_YEARS = 5
