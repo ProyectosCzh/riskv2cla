@@ -37,67 +37,51 @@ def plot_monte_carlo_paths(
     paths: np.ndarray,
     projection_years: float,
     initial_capital: float,
-    n_display: int = 200,
 ) -> go.Figure:
     """
-    Plot a fan chart of Monte Carlo simulation paths.
-    Shows percentile bands + sample paths.
+    Plot Monte Carlo paths showing median, 3 best and 3 worst scenarios.
     """
     n_steps = paths.shape[1]
     t = np.linspace(0, projection_years, n_steps)
 
-    p5  = np.percentile(paths, 5,  axis=0)
-    p25 = np.percentile(paths, 25, axis=0)
-    p50 = np.percentile(paths, 50, axis=0)
-    p75 = np.percentile(paths, 75, axis=0)
-    p95 = np.percentile(paths, 95, axis=0)
+    final_values = paths[:, -1]
+    sorted_idx = np.argsort(final_values)
+    worst_idx = sorted_idx[:3]
+    best_idx = sorted_idx[-3:]
+    median_idx = sorted_idx[len(sorted_idx) // 2]
 
     fig = go.Figure()
 
-    # ── Sample paths (thin, semi-transparent) ─────────────────────────────
-    rng = np.random.default_rng(0)
-    idx = rng.choice(paths.shape[0], size=min(n_display, paths.shape[0]), replace=False)
-    for i in idx:
+    # ── 3 worst paths (red shades) ─────────────────────────────────────────
+    red_shades = ["#E53E3E", "#FC8181", "#FEB2B2"]
+    for rank, i in enumerate(worst_idx):
         fig.add_trace(go.Scatter(
             x=t, y=paths[i],
             mode="lines",
-            line=dict(color="rgba(41, 82, 163, 0.07)", width=0.8),
-            showlegend=False,
-            hoverinfo="skip",
+            line=dict(color=red_shades[rank], width=1.2),
+            name=f"Peor {'I' if rank == 0 else 'II' if rank == 1 else 'III'}",
+            showlegend=True,
         ))
 
-    # ── Confidence bands ───────────────────────────────────────────────────
-    fig.add_trace(go.Scatter(
-        x=np.concatenate([t, t[::-1]]),
-        y=np.concatenate([p95, p5[::-1]]),
-        fill="toself",
-        fillcolor="rgba(99, 179, 237, 0.12)",
-        line=dict(color="rgba(0,0,0,0)"),
-        name="Rango 5%-95%",
-        hoverinfo="skip",
-    ))
-    fig.add_trace(go.Scatter(
-        x=np.concatenate([t, t[::-1]]),
-        y=np.concatenate([p75, p25[::-1]]),
-        fill="toself",
-        fillcolor="rgba(99, 179, 237, 0.22)",
-        line=dict(color="rgba(0,0,0,0)"),
-        name="Rango 25%-75%",
-        hoverinfo="skip",
-    ))
-
-    # ── Percentile lines ───────────────────────────────────────────────────
-    for vals, color, name, dash in [
-        (p95, GREEN,  "Escenario optimista (P95)",   "dash"),
-        (p50, NAVY,   "Escenario mediano (P50)",      "solid"),
-        (p5,  RED,    "Escenario pesimista (P5)",     "dash"),
-    ]:
+    # ── 3 best paths (green shades) ────────────────────────────────────────
+    green_shades = ["#9AE6B4", "#48BB78", "#38A169"]
+    for rank, i in enumerate(reversed(best_idx)):
         fig.add_trace(go.Scatter(
-            x=t, y=vals,
+            x=t, y=paths[i],
             mode="lines",
-            line=dict(color=color, width=2, dash=dash),
-            name=name,
+            line=dict(color=green_shades[rank], width=1.2),
+            name=f"Mejor {'I' if rank == 0 else 'II' if rank == 1 else 'III'}",
+            showlegend=True,
         ))
+
+    # ── Median path (black) ────────────────────────────────────────────────
+    p50 = np.percentile(paths, 50, axis=0)
+    fig.add_trace(go.Scatter(
+        x=t, y=p50,
+        mode="lines",
+        line=dict(color="#000000", width=2.5),
+        name="Mediana (P50)",
+    ))
 
     # ── Initial capital reference ──────────────────────────────────────────
     fig.add_hline(
@@ -156,64 +140,6 @@ def plot_final_value_histogram(final_values: np.ndarray, initial_capital: float)
         yaxis_title="Frecuencia",
         showlegend=False,
         height=360,
-    )
-    return fig
-
-
-def plot_efficient_frontier(
-    frontier_df: pd.DataFrame,
-    current_vol: float,
-    current_ret: float,
-    opt_vol: float | None = None,
-    opt_ret: float | None = None,
-) -> go.Figure:
-    """Plot Markowitz efficient frontier."""
-    fig = go.Figure()
-
-    # Frontier curve colored by Sharpe
-    fig.add_trace(go.Scatter(
-        x=frontier_df["volatility"] * 100,
-        y=frontier_df["return"] * 100,
-        mode="lines+markers",
-        marker=dict(
-            size=5,
-            color=frontier_df["sharpe"],
-            colorscale="Blues",
-            showscale=True,
-            colorbar=dict(title="Sharpe", thickness=12, len=0.7),
-        ),
-        line=dict(color=BLUE, width=2),
-        name="Frontera Eficiente",
-    ))
-
-    # Current portfolio
-    fig.add_trace(go.Scatter(
-        x=[current_vol * 100],
-        y=[current_ret * 100],
-        mode="markers",
-        marker=dict(size=14, color=ORANGE, symbol="star", line=dict(color="white", width=1.5)),
-        name="Portafolio Actual",
-    ))
-
-    # Optimized portfolio
-    if opt_vol is not None and opt_ret is not None:
-        fig.add_trace(go.Scatter(
-            x=[opt_vol * 100],
-            y=[opt_ret * 100],
-            mode="markers",
-            marker=dict(size=14, color=GREEN, symbol="diamond", line=dict(color="white", width=1.5)),
-            name="Portafolio Optimizado",
-        ))
-
-    fig.update_layout(
-        **_layout_kwargs(margin=dict(l=50, r=30, t=50, b=50)),
-        title=dict(text="Frontera Eficiente de Markowitz", font=dict(size=15, color=NAVY), x=0),
-        xaxis_title="Volatilidad Anual (%)",
-        yaxis_title="Rendimiento Esperado Anual (%)",
-        xaxis_ticksuffix="%",
-        yaxis_ticksuffix="%",
-        legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="left", x=0),
-        height=420,
     )
     return fig
 
@@ -285,9 +211,20 @@ def plot_historical_performance(
 
 
 def plot_correlation_heatmap(corr_matrix: pd.DataFrame) -> go.Figure:
-    """Correlation heatmap between assets."""
+    """Correlation heatmap between assets with diversification analysis."""
     tickers = list(corr_matrix.columns)
     z = corr_matrix.values
+    n = len(tickers)
+
+    # Diversification stats
+    upper_tri = z[np.triu_indices(n, k=1)]
+    avg_corr = float(np.mean(upper_tri)) if len(upper_tri) > 0 else 0
+    max_corr_val = float(np.max(upper_tri)) if len(upper_tri) > 0 else 0
+    min_corr_val = float(np.min(upper_tri)) if len(upper_tri) > 0 else 0
+
+    # Find pair names for max/min
+    max_idx = np.unravel_index(np.argmax(upper_tri), upper_tri.shape) if len(upper_tri) > 0 else (0,)
+    min_idx = np.unravel_index(np.argmin(upper_tri), upper_tri.shape) if len(upper_tri) > 0 else (0,)
 
     fig = go.Figure(go.Heatmap(
         z=z,
@@ -303,9 +240,34 @@ def plot_correlation_heatmap(corr_matrix: pd.DataFrame) -> go.Figure:
         colorbar=dict(title="ρ", thickness=12),
     ))
 
+    # Build subtitle with diversification context
+    context_lines = [
+        f"Correlación promedio: <strong>{avg_corr:.2f}</strong> — {'Alta (poca diversificación)' if avg_corr > 0.7 else 'Moderada' if avg_corr > 0.4 else 'Baja (buena diversificación)'}",
+    ]
+    if n >= 2:
+        context_lines.append(
+            f"Par más correlacionado: ρ = <span style='color:#E53E3E;'><strong>{max_corr_val:.2f}</strong></span> "
+            f"· Par menos correlacionado: ρ = <span style='color:#38A169;'><strong>{min_corr_val:.2f}</strong></span>"
+        )
+    context_lines.append(
+        "La correlación mide cómo se mueven juntos dos activos. "
+        "ρ cercano a -1 = se mueven en direcciones opuestas (ideal para diversificar). "
+        "ρ cercano a +1 = suben y bajan juntos (menor beneficio de diversificación)."
+    )
+
     fig.update_layout(
         **_layout_kwargs(margin=dict(l=60, r=30, t=50, b=60)),
         title=dict(text="Matriz de Correlación", font=dict(size=15, color=NAVY), x=0),
         height=350,
+        annotations=[
+            dict(
+                x=0.5, y=-0.2,
+                xref="paper", yref="paper",
+                text="<br>".join(context_lines),
+                font=dict(size=11, color="#4A5568"),
+                showarrow=False,
+                align="center",
+            )
+        ],
     )
     return fig

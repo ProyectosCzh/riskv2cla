@@ -1,11 +1,8 @@
 """
 SmartRisk - Simulator Page (Monte Carlo)
 """
-import io
-
 import pandas as pd
 import streamlit as st
-import numpy as np
 
 from auth.session_manager import get_current_user
 from core.ds.stack import SimulationStack
@@ -13,7 +10,7 @@ from database.repositories import (
     get_portfolios_for_user,
     get_risk_profile_for_user,
 )
-from services.portfolio_service import build_portfolio_data, run_markowitz_optimization, compute_efficient_frontier
+from services.portfolio_service import build_portfolio_data
 from services.simulation_service import run_simulation, persist_simulation
 from ui.components.metrics_cards import (
     page_header, section_header, alert_box, tooltip_box, spacer, metric_card
@@ -21,7 +18,6 @@ from ui.components.metrics_cards import (
 from ui.components.charts import (
     plot_monte_carlo_paths,
     plot_final_value_histogram,
-    plot_efficient_frontier,
     plot_portfolio_weights,
     plot_historical_performance,
     plot_correlation_heatmap,
@@ -156,6 +152,7 @@ def render_simulator() -> None:
                 text=f"⬇️ Descargando {ticker}... ({processed}/{total})",
             )
 
+        st.caption("📌 Usando DownloadQueue (cola FIFO con lista enlazada simple) — los tickers se encolan y procesan en orden de llegada")
         portfolio_data = build_portfolio_data(
             tickers, weights, history_years,
             progress_callback=_on_download_progress,
@@ -225,6 +222,7 @@ def _render_stack_navigation(stack, redo) -> None:
             f"</div>",
             unsafe_allow_html=True,
         )
+        st.caption("📌 SimulationStack (pila LIFO con lista doblemente enlazada) — push() apila, pop() desapila, peek() muestra el tope")
     with cols[2]:
         if not redo.is_empty() and st.button("Recuperar ⏩", use_container_width=True):
             stack.push(redo.pop())
@@ -303,8 +301,8 @@ def _render_results(result, portfolio_data, tickers: list, weights: list) -> Non
     spacer()
 
     # ── Charts ─────────────────────────────────────────────────────────────
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📈 Proyección", "📊 Distribución", "🎯 Frontera Eficiente",
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📈 Proyección", "📊 Distribución",
         "📉 Histórico", "🔗 Correlaciones"
     ])
 
@@ -312,8 +310,8 @@ def _render_results(result, portfolio_data, tickers: list, weights: list) -> Non
         fig = plot_monte_carlo_paths(result.paths, cfg.projection_years, cfg.initial_capital)
         st.plotly_chart(fig, use_container_width=True)
         alert_box(
-            f"Basado en <strong>{cfg.n_simulations:,} escenarios</strong> usando datos de mercado reales. "
-            f"Las bandas representan los percentiles 5%-95% y 25%-75%.",
+            f"Basado en <strong>{cfg.n_simulations:,} escenarios</strong> usando GBM con datos de mercado reales. "
+            f"Se muestran la mediana (negra), los 3 mejores escenarios (verde) y los 3 peores (rojo).",
             "info",
         )
 
@@ -327,37 +325,6 @@ def _render_results(result, portfolio_data, tickers: list, weights: list) -> Non
             st.plotly_chart(fig_pie, use_container_width=True)
 
     with tab3:
-        with st.spinner("Calculando frontera eficiente..."):
-            frontier_df = compute_efficient_frontier(portfolio_data)
-            # Run quick optimization for display
-            opt = run_markowitz_optimization(portfolio_data, "max_sharpe")
-
-        fig3 = plot_efficient_frontier(
-            frontier_df,
-            portfolio_data.portfolio_sigma,
-            portfolio_data.portfolio_mu,
-            opt.volatility,
-            opt.expected_return,
-        )
-        st.plotly_chart(fig3, use_container_width=True)
-
-        # Optimization result table
-        section_header("Portafolio Óptimo (Máximo Sharpe)")
-        opt_data = {t: f"{w*100:.1f}%" for t, w in zip(opt.tickers, opt.weights)}
-        col_left, col_right = st.columns(2)
-        with col_left:
-            for t, pct in opt_data.items():
-                st.markdown(
-                    f"<div style='padding:0.3rem 0; border-bottom:1px solid #EDF2F7;'>"
-                    f"<strong>{t}</strong>: {pct}</div>",
-                    unsafe_allow_html=True,
-                )
-        with col_right:
-            metric_card("Sharpe Óptimo", f"{opt.sharpe_ratio:.3f}", "vs actual")
-            spacer(0.3)
-            metric_card("Volatilidad Óptima", f"{opt.volatility:.2%}", "")
-
-    with tab4:
         fig4 = plot_historical_performance(portfolio_data.prices, weights, tickers)
         st.plotly_chart(fig4, use_container_width=True)
 
@@ -374,7 +341,7 @@ def _render_results(result, portfolio_data, tickers: list, weights: list) -> Non
             })
         st.dataframe(pd.DataFrame(hist_rows), use_container_width=True, hide_index=True)
 
-    with tab5:
+    with tab4:
         fig5 = plot_correlation_heatmap(portfolio_data.corr_matrix)
         st.plotly_chart(fig5, use_container_width=True)
         tooltip_box(
@@ -383,39 +350,4 @@ def _render_results(result, portfolio_data, tickers: list, weights: list) -> Non
             "Valores cercanos a 1 indican que suben y bajan al mismo tiempo."
         )
 
-    # ── Export ─────────────────────────────────────────────────────────────
-    spacer()
-    section_header("📤 Exportar Resultados")
-    export_data = {
-        "Métrica": [
-            "Capital Inicial", "Aportaciones Mensuales DCA", "Horizonte (años)",
-            "Capital Final Mediano", "Capital Final Esperado",
-            "VaR 95%", "CVaR 95%", "Max Drawdown (Mediana)",
-            "Probabilidad de Pérdida", "Sharpe Ratio", "Volatilidad Anual", "CAGR Mediano"
-        ],
-        "Valor": [
-            f"${cfg.initial_capital:,.2f}",
-            f"${cfg.monthly_dca:,.2f}",
-            str(cfg.projection_years),
-            f"${metrics['median_capital']:,.2f}",
-            f"${metrics['expected_capital']:,.2f}",
-            f"${metrics['var_95_value']:,.2f}",
-            f"${metrics['cvar_95']:,.2f}",
-            f"{metrics['max_drawdown']:.4f}",
-            f"{metrics['prob_loss']:.4f}",
-            f"{portfolio_data.portfolio_sharpe:.4f}",
-            f"{portfolio_data.portfolio_sigma:.4f}",
-            f"{metrics['cagr_median']:.4f}",
-        ],
-    }
-    df_export = pd.DataFrame(export_data)
-    csv_buf = io.StringIO()
-    df_export.to_csv(csv_buf, index=False)
 
-    st.download_button(
-        "⬇️ Descargar Reporte CSV",
-        data=csv_buf.getvalue(),
-        file_name=f"smartrisk_simulacion_{tickers[0]}.csv",
-        mime="text/csv",
-        use_container_width=True,
-    )

@@ -2,13 +2,12 @@
 SmartRisk - Simulation Service
 Orchestrates Monte Carlo runs and persists results.
 """
-import numpy as np
 from typing import Optional
 
 from core.finance.monte_carlo import SimulationConfig, SimulationResult, run_monte_carlo
 from services.portfolio_service import PortfolioData
 from database.repositories import save_simulation
-from config.settings import DEFAULT_SIMULATIONS, RISK_FREE_RATE
+from config.settings import DEFAULT_SIMULATIONS
 
 
 def run_simulation(

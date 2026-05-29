@@ -1,8 +1,6 @@
 """
 SmartRisk - Results History Page
 """
-import io
-
 import streamlit as st
 import pandas as pd
 
@@ -76,6 +74,8 @@ def render_results() -> None:
             f"Algoritmo: <strong>{algo_name}</strong> · {len(sims_sorted)} elementos</div>",
             unsafe_allow_html=True,
         )
+        if sort_key != "created_at":
+            st.caption(f"📌 SimulationSorter.sort() — {'QuickSort (O(n log n)) si > 10 elementos' if len(sims_sorted) > 10 else 'MergeSort (O(n log n)) si ≤ 10 elementos'}")
 
     rows = []
     for sim in sims_sorted:
@@ -136,13 +136,4 @@ def render_results() -> None:
         st.success("Simulación eliminada.")
         st.rerun()
 
-    # ── Export all ─────────────────────────────────────────────────────────
-    if not display_df.empty:
-        csv_buf = io.StringIO()
-        display_df.to_csv(csv_buf, index=False)
-        st.download_button(
-            "⬇️ Exportar todo el historial (CSV)",
-            data=csv_buf.getvalue(),
-            file_name="smartrisk_historial.csv",
-            mime="text/csv",
-        )
+
