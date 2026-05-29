@@ -116,15 +116,18 @@ def delete_user(user_id: str) -> bool:
     if not path.exists():
         return False
     path.unlink()
+    for p in [_portfolios_path(user_id), _simulations_path(user_id), _risk_results_path(user_id)]:
+        if p.exists():
+            p.unlink()
     return True
 
 
 def ensure_admin_exists() -> None:
-    """Create default admin account if no admin user exists."""
+    """Create default admin account if no active admin exists."""
     from auth.password_utils import hash_password
 
     users = get_all_users()
-    has_admin = any(u.get("role") == "admin" for u in users.values())
+    has_admin = any(u.get("role") == "admin" and u.get("is_active", True) for u in users.values())
     if not has_admin:
         create_user(
             username="admin",
@@ -180,7 +183,13 @@ def _risk_results_path(user_id: str) -> Path:
 
 def get_risk_profile_for_user(user_id: str) -> Optional[dict]:
     data = _read(_risk_results_path(user_id))
-    return data if data.get("user_id") else None
+    if not data.get("user_id"):
+        return None
+    score = data.get("score", 0)
+    answers = data.get("answers", [])
+    if score < 5 or score > 15 or len(answers) != 5:
+        return None
+    return data
 
 
 def save_risk_profile(user_id: str, profile: str, score: int, answers: list) -> dict:

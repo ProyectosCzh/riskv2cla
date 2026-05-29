@@ -32,7 +32,6 @@ from config.settings import (
     DEFAULT_PROJECTION_YEARS,
     DEFAULT_HISTORY_YEARS,
     MAX_SIMULATIONS,
-    RISK_FREE_RATE,
 )
 
 

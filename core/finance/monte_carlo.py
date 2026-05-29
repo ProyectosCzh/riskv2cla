@@ -82,12 +82,10 @@ def run_monte_carlo(cfg: SimulationConfig) -> SimulationResult:
     # ── Apply DCA (monthly contributions) ────────────────────────────────
     if cfg.monthly_dca > 0:
         trading_days_per_month = 21
-        for step in range(1, n_steps + 1):
-            if step % trading_days_per_month == 0:
-                # Growth factor from the contribution step to the end
-                growth_factor = cum_returns[:, -1] / cum_returns[:, step]
-                # Add the DCA amount, grown to the end of the period
-                paths[:, -1] += cfg.monthly_dca * growth_factor
+        dca_steps = np.arange(trading_days_per_month, n_steps + 1, trading_days_per_month)
+        for dca_step in dca_steps:
+            growth_to = cum_returns[:, dca_step:] / cum_returns[:, [dca_step]]
+            paths[:, dca_step:] += cfg.monthly_dca * growth_to
     final_values = paths[:, -1]
 
     # ── Compute percentiles ───────────────────────────────────────────────

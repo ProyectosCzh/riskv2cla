@@ -122,45 +122,6 @@ def render_results() -> None:
 
     spacer()
 
-    # ── Comparison view ────────────────────────────────────────────────────
-    if len(simulations) >= 2:
-        section_header("Comparar Simulaciones")
-        cols_compare = st.columns(2)
-        with cols_compare[0]:
-            sim_a_idx = st.selectbox("Simulación A", range(len(simulations)), format_func=lambda i: sim_labels[i], key="cmp_a")
-        with cols_compare[1]:
-            sim_b_idx = st.selectbox("Simulación B", range(len(simulations)), format_func=lambda i: sim_labels[i], key="cmp_b", index=min(1, len(simulations)-1))
-
-        sim_a = simulations[sim_a_idx]
-        sim_b = simulations[sim_b_idx]
-
-        col1, col2 = st.columns(2)
-        for col, sim, label in [(col1, sim_a, "Simulación A"), (col2, sim_b, "Simulación B")]:
-            with col:
-                cfg = sim.get("config", {})
-                m = sim.get("summary", {})
-                st.markdown(
-                    f"""
-                    <div style="background:white; border:1px solid #E2E8F0; border-radius:12px;
-                                padding:1.25rem; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-                        <div style="font-weight:700; color:#1B3A6B; margin-bottom:0.75rem;">{label}</div>
-                        <div style="font-size:0.85rem; color:#4A5568; line-height:1.9;">
-                            <div><strong>Activos:</strong> {', '.join(cfg.get('tickers',[]))}</div>
-                            <div><strong>Capital inicial:</strong> ${cfg.get('initial_capital',0):,.0f}</div>
-                            <div><strong>Horizonte:</strong> {cfg.get('projection_years','?')} años</div>
-                            <hr style="border-color:#EDF2F7; margin:0.5rem 0;">
-                            <div><strong>Capital mediano:</strong> ${m.get('median_capital',0):,.0f}</div>
-                            <div><strong>VaR 95%:</strong> ${m.get('var_95_value',0):,.0f}</div>
-                            <div><strong>Max Drawdown:</strong> {m.get('max_drawdown',0):.2%}</div>
-                            <div><strong>CAGR:</strong> {m.get('cagr_median',0):.2%}</div>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-    spacer()
-
     # ── Delete simulations ─────────────────────────────────────────────────
     section_header("Gestionar Simulaciones")
     sim_to_delete = st.selectbox(
