@@ -26,7 +26,7 @@ st.set_page_config(
 
 # ── Imports after page config ──────────────────────────────────────────────────
 from auth.session_manager import init_session, is_authenticated
-from auth.login import render_login
+from ui.pages.login import render_login
 from database.repositories import ensure_admin_exists
 from ui.styles.custom_css import inject_css
 from ui.components.sidebar import render_sidebar
