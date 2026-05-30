@@ -16,6 +16,7 @@ from database.repositories import (
 from ui.components.metrics_cards import (
     page_header, section_header, alert_box, tooltip_box, spacer
 )
+from ui.components.page_nav import render_page_navigation
 from services.portfolio_service import build_portfolio_data, run_markowitz_optimization
 from config.settings import CONFIG_DIR, MAX_ASSETS, DEFAULT_HISTORY_YEARS
 
@@ -247,6 +248,7 @@ def render_portfolio_builder() -> None:
                 st.success(f"✅ Portafolio «{portfolio_name}» guardado correctamente.")
                 st.rerun()
 
+    render_page_navigation("portfolio")
     spacer()
     _render_saved_portfolios(user["id"])
 

@@ -20,7 +20,7 @@ st.set_page_config(
     page_title="SmartRisk — Robo-Advisor",
     page_icon="📉",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # ── Imports after page config ──────────────────────────────────────────────────
@@ -28,7 +28,7 @@ from auth.session_manager import init_session, is_authenticated
 from auth.login import render_login
 from database.repositories import ensure_admin_exists
 from ui.styles.custom_css import inject_css
-from ui.components.sidebar import render_sidebar
+from ui.components.navbar import render_navbar, handle_nav_params
 
 # Page renderers
 from ui.pages.dashboard        import render_dashboard
@@ -46,8 +46,8 @@ PAGE_MAP = {
     "portfolio":  render_portfolio_builder,
     "simulator":  render_simulator,
     "results":    render_results,
-    "admin":      render_admin_panel,
     "profile":    render_profile,
+    "admin":      render_admin_panel,
 }
 
 
@@ -58,13 +58,16 @@ def main() -> None:
     ensure_admin_exists()
     ensure_directories()
 
+    # ── Handle nav query params from HTML navbar ───────────────────────────
+    handle_nav_params()
+
     # ── Auth gate ──────────────────────────────────────────────────────────
     if not is_authenticated():
         render_login()
         return
 
     # ── Authenticated layout ───────────────────────────────────────────────
-    render_sidebar()
+    render_navbar()
 
     current_page = st.session_state.get("current_page", "dashboard")
     renderer = PAGE_MAP.get(current_page, render_dashboard)

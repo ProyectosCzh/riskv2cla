@@ -15,6 +15,7 @@ from services.simulation_service import run_simulation, persist_simulation
 from ui.components.metrics_cards import (
     page_header, section_header, alert_box, tooltip_box, spacer, metric_card
 )
+from ui.components.page_nav import render_page_navigation
 from ui.components.charts import (
     plot_monte_carlo_paths,
     plot_final_value_histogram,
@@ -197,6 +198,8 @@ def render_simulator() -> None:
     # ── Display from stack (LIFO - top is most recent) ────────────────────
     stack = st.session_state.get("sim_stack")
     redo = st.session_state.get("sim_redo", SimulationStack())
+
+    render_page_navigation("simulator")
 
     if stack and not stack.is_empty():
         result, portfolio_data, tickers, weights = stack.peek()

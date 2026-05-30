@@ -12,6 +12,7 @@ from services.market_service import get_risk_profiles
 from ui.components.metrics_cards import (
     page_header, section_header, metric_card, alert_box, spacer
 )
+from ui.components.page_nav import render_page_navigation
 
 
 def render_dashboard() -> None:
@@ -153,3 +154,5 @@ def render_dashboard() -> None:
             "Aún no tienes simulaciones. Construye un portafolio y ejecuta tu primera simulación Monte Carlo.",
             "info",
         )
+
+    render_page_navigation("dashboard")

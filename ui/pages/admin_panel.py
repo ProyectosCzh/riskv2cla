@@ -19,6 +19,7 @@ from database.repositories import (
 from ui.components.metrics_cards import (
     page_header, section_header, alert_box, spacer, metric_card
 )
+from ui.components.page_nav import render_page_navigation
 
 
 def render_admin_panel() -> None:
@@ -158,3 +159,5 @@ def render_admin_panel() -> None:
                         delete_user(selected_uid)
                         st.success("Usuario eliminado.")
                         st.rerun()
+
+    render_page_navigation("admin")

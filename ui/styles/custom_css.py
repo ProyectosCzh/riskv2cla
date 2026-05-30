@@ -250,10 +250,195 @@ html, body, [class*="css"] {
 ::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #A0AEC0; }
 
-/* ── Hide Streamlit branding ─────────────────────────────────────────────── */
+/* ── Hide Streamlit sidebar + branding ──────────────────────────────────── */
+[data-testid="stSidebar"] { display: none !important; }
+[data-testid="stSidebarContent"] { display: none !important; }
 #MainMenu { visibility: hidden; }
 footer { visibility: hidden; }
 header { visibility: hidden; }
+
+/* ── Top Navbar (desktop) ──────────────────────────────────────────────── */
+.top-navbar {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    height: 52px;
+    padding: 0 1rem;
+    background: var(--navy);
+}
+
+.top-navbar .nav-logo {
+    color: white;
+    font-weight: 800;
+    font-size: 1.05rem;
+    white-space: nowrap;
+    letter-spacing: -0.02em;
+    margin-right: 0.75rem;
+}
+
+.top-navbar .nav-items {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    flex: 1;
+}
+
+.top-navbar .nav-item {
+    color: rgba(255,255,255,0.7);
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.top-navbar .nav-item:hover {
+    background: rgba(255,255,255,0.12);
+    color: white;
+}
+
+.top-navbar .nav-item.nav-active {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    font-weight: 600;
+}
+
+.top-navbar .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.top-navbar .nav-user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.top-navbar .nav-logout-btn {
+    color: rgba(255,255,255,0.6);
+    font-size: 1.1rem;
+    text-decoration: none;
+    cursor: pointer;
+    padding: 0.25rem 0.4rem;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+.top-navbar .nav-logout-btn:hover {
+    background: rgba(255,255,255,0.12);
+    color: white;
+}
+
+/* ── Bottom Tab Bar (mobile) ────────────────────────────────────────────── */
+.bottom-tab-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    height: 60px;
+    background: var(--navy);
+    padding: 0.25rem 0;
+}
+
+.bottom-tab-bar .tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    color: rgba(255,255,255,0.55);
+    text-decoration: none;
+    font-size: 0.55rem;
+    padding: 0.2rem 0.3rem;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+    flex: 1;
+    text-align: center;
+    cursor: pointer;
+}
+
+.bottom-tab-bar .tab-item:hover {
+    color: white;
+}
+
+.bottom-tab-bar .tab-item.tab-active {
+    color: white;
+    font-weight: 600;
+}
+
+.bottom-tab-bar .tab-item.tab-active .tab-label {
+    font-weight: 700;
+}
+
+.bottom-tab-bar .tab-icon {
+    font-size: 1.1rem;
+    line-height: 1.2;
+}
+
+.bottom-tab-bar .tab-label {
+    font-size: 0.55rem;
+    line-height: 1;
+}
+
+/* ── Responsive visibility ──────────────────────────────────────────────── */
+.nav-desktop-only { display: block !important; }
+.nav-mobile-only { display: none !important; }
+
+@media (max-width: 767px) {
+    .nav-desktop-only { display: none !important; }
+    .nav-mobile-only {
+        display: block !important;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 999;
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
+    }
+
+    .main .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 76px !important;
+    }
+}
+
+@media (min-width: 768px) {
+    .nav-desktop-only {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 999;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .main .block-container {
+        padding-top: 68px !important;
+    }
+}
+
+/* ── Page navigation buttons (Previous / Next) ──────────────────────────── */
+.page-nav-container {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.page-nav-container .stButton button {
+    font-weight: 600;
+    padding: 0.5rem 1.25rem;
+}
 </style>
 """
 

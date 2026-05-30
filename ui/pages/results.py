@@ -10,6 +10,7 @@ from database.repositories import get_simulations_for_user, delete_simulation
 from ui.components.metrics_cards import (
     page_header, section_header, alert_box, spacer, metric_card
 )
+from ui.components.page_nav import render_page_navigation
 
 SORT_OPTIONS = {
     "Más recientes": ("created_at", True),
@@ -120,6 +121,7 @@ def render_results() -> None:
                 unsafe_allow_html=True,
             )
 
+    render_page_navigation("results")
     spacer()
 
     # ── Delete simulations ─────────────────────────────────────────────────

@@ -15,6 +15,7 @@ from database.repositories import (
 from ui.components.metrics_cards import (
     page_header, section_header, alert_box, metric_card, spacer, tooltip_box
 )
+from ui.components.page_nav import render_page_navigation
 
 
 def render_profile() -> None:
@@ -129,3 +130,5 @@ def render_profile() -> None:
                 metric_card("CAGR", f"{met.get('cagr_median',0):.2%}", f"{cfg.get('projection_years','?')} años")
             with col_c:
                 metric_card("VaR 95%", f"${met.get('var_95_value',0):,.0f}", "Escenario pesimista probable")
+
+    render_page_navigation("profile")

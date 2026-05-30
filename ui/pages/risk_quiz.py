@@ -6,6 +6,7 @@ from auth.session_manager import get_current_user
 from database.repositories import get_risk_profile_for_user, save_risk_profile
 from services.market_service import get_risk_profiles
 from ui.components.metrics_cards import page_header, section_header, alert_box, spacer
+from ui.components.page_nav import render_page_navigation
 
 
 QUESTIONS = [
@@ -135,6 +136,8 @@ def _render_quiz_form(user_id: str) -> None:
         st.success(f"✅ Perfil guardado exitosamente: **{profile_data.get('label','')}**")
         st.rerun()
 
+    render_page_navigation("risk_quiz")
+
 
 def _show_profile_detail(profile_key: str, profile_data: dict, score: int) -> None:
     col1, col2 = st.columns([1, 2])
@@ -190,3 +193,5 @@ def _show_profile_detail(profile_key: str, profile_data: dict, score: int) -> No
                 """,
                 unsafe_allow_html=True,
             )
+
+    render_page_navigation("risk_quiz")
