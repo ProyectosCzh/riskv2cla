@@ -5,6 +5,7 @@ import streamlit as st
 from auth.auth_service import authenticate_user, register_user
 from core.exceptions import AuthError, ValidationError
 from auth.session_manager import login_session
+from ui.assets import get_logo_img_tag
 
 
 def render_login() -> None:
@@ -13,11 +14,11 @@ def render_login() -> None:
     col1, col2, col3 = st.columns([1, 1.6, 1])
     with col2:
         st.markdown(
-            """
+            f"""
             <div style="text-align:center; padding: 2.5rem 0 1.5rem;">
                 <div style="font-size: 2.5rem; font-weight: 900; color: #1B3A6B;
                             letter-spacing: -0.03em; margin-bottom: 0.25rem;">
-                    📉 SmartRisk
+                    {get_logo_img_tag(height="3rem")}SmartRisk
                 </div>
                 <div style="font-size: 0.85rem; color: #718096; letter-spacing: 0.08em;
                             text-transform: uppercase; margin-bottom: 2rem;">

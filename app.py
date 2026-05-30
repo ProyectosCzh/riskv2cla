@@ -19,7 +19,7 @@ import streamlit as st
 # ── Page config (must be first Streamlit call) ─────────────────────────────────
 st.set_page_config(
     page_title="SmartRisk — Robo-Advisor",
-    page_icon="📉",
+    page_icon=str(ROOT / "ui" / "assets" / "logorisk.jpg"),
     layout="wide",
     initial_sidebar_state="expanded",
 )

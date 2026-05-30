@@ -4,6 +4,7 @@ SmartRisk - Sidebar Navigation Component
 import streamlit as st
 from auth.session_manager import get_current_user, logout_session, is_admin
 from config.settings import APP_NAME, APP_VERSION, ROLE_ADMIN
+from ui.assets import get_logo_img_tag
 
 
 NAV_ITEMS_USER = [
@@ -29,9 +30,11 @@ def render_sidebar() -> None:
     with st.sidebar:
         # ── Logo ──────────────────────────────────────────────────────────
         st.markdown(
-            """
+            f"""
             <div class="logo-container">
-                <div class="logo-text">📉 SmartRisk</div>
+                <div class="logo-text">
+                    {get_logo_img_tag(height="2rem")}SmartRisk
+                </div>
                 <div class="logo-sub">Robo-Advisor Académico</div>
             </div>
             <div class="logo-divider"></div>
