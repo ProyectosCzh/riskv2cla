@@ -3,9 +3,10 @@ SmartRisk - Monte Carlo Simulation Engine
 Uses Geometric Brownian Motion with Cholesky decomposition for correlated assets.
 """
 import numpy as np
-import pandas as pd
 from dataclasses import dataclass, field
 from typing import Optional
+
+from core.exceptions import SimulationError
 
 
 @dataclass
@@ -40,6 +41,22 @@ def run_monte_carlo(cfg: SimulationConfig) -> SimulationResult:
 
     Uses Cholesky decomposition to preserve asset correlations.
     """
+    n_assets = len(cfg.tickers)
+    if n_assets == 0:
+        raise SimulationError("No assets in simulation config")
+    if len(cfg.weights) != n_assets:
+        raise SimulationError("Weights length does not match tickers count")
+    if len(cfg.mu_vec) != n_assets:
+        raise SimulationError("Mu vector length does not match tickers count")
+    if len(cfg.sigma_vec) != n_assets:
+        raise SimulationError("Sigma vector length does not match tickers count")
+    if cfg.initial_capital <= 0:
+        raise SimulationError("Initial capital must be positive")
+    if cfg.n_simulations <= 0:
+        raise SimulationError("Number of simulations must be positive")
+    if cfg.projection_years <= 0:
+        raise SimulationError("Projection years must be positive")
+
     rng = np.random.default_rng(cfg.seed)
 
     weights = np.asarray(cfg.weights, dtype=float)

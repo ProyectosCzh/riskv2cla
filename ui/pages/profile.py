@@ -5,6 +5,7 @@ import streamlit as st
 
 from auth.session_manager import get_current_user
 from auth.password_utils import hash_password, verify_password
+from core.utils.string_validator import StringValidator
 from database.repositories import (
     update_user,
     get_portfolios_for_user,
@@ -86,13 +87,15 @@ def render_profile() -> None:
                 st.error("La contraseña actual es incorrecta.")
             elif new_pass != confirm_pass:
                 st.error("Las contraseñas nuevas no coinciden.")
-            elif len(new_pass) < 8:
-                st.error("La nueva contraseña debe tener al menos 8 caracteres.")
             else:
-                new_hash = hash_password(new_pass)
-                update_user(user["id"], {"password_hash": new_hash})
-                st.session_state.user["password_hash"] = new_hash
-                st.success("✅ Contraseña actualizada exitosamente.")
+                is_valid, msg = StringValidator.validate_password(new_pass)
+                if not is_valid:
+                    st.error(msg)
+                else:
+                    new_hash = hash_password(new_pass)
+                    update_user(user["id"], {"password_hash": new_hash})
+                    st.session_state.user["password_hash"] = new_hash
+                    st.success("✅ Contraseña actualizada exitosamente.")
 
     # ── Stats ──────────────────────────────────────────────────────────────
     with tab_stats:

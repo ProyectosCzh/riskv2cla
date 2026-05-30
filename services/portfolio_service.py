@@ -8,7 +8,6 @@ import pandas as pd
 
 from core.market.downloader import (
     download_multiple,
-    compute_returns,
     compute_stats,
     build_correlation_matrix,
 )

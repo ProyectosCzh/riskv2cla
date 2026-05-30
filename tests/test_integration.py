@@ -51,9 +51,10 @@ class TestFullUserWorkflow:
         assert len(ports) == 1
 
         # 7. Save risk profile
-        rp = save_risk_profile(uid, "agresivo", 85, [5, 5, 4, 5, 3])
+        rp = save_risk_profile(uid, "agresivo", 14, [5, 5, 4, 5, 3])
         assert rp["profile"] == "agresivo"
         loaded = get_risk_profile_for_user(uid)
+        assert loaded is not None
         assert loaded["profile"] == "agresivo"
 
         # 8. Build portfolio data (uses mock_market_data, no yfinance)

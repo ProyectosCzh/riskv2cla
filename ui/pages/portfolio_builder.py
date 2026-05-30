@@ -76,6 +76,7 @@ def render_portfolio_builder() -> None:
         st.caption(
             f"Recorrido pre-order · {total_assets} activos en {len(tree.root.children)} categorías"
         )
+        st.caption("📌 AssetCategoryTree.traverse_preorder() — recorrido recursivo pre-order para mostrar la jerarquía")
 
     # ── Asset selector ─────────────────────────────────────────────────────
     section_header("Selección de Activos", f"Elige entre {len(flat_assets)} instrumentos disponibles (máx. {MAX_ASSETS})")

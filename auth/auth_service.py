@@ -23,7 +23,7 @@ def register_user(
     username = username.strip()
     email = email.strip().lower()
 
-    is_valid, msg = StringValidator.validate_username(username)
+    is_valid, msg = StringValidator.validate_username(username)  # 📌 StringValidator — validación de cadenas (Unidad IV)
     if not is_valid:
         raise ValidationError(msg)
 
