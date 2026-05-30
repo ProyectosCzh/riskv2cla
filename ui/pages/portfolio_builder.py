@@ -1,8 +1,6 @@
 """
 SmartRisk - Portfolio Builder Page
 """
-import json
-
 import streamlit as st
 
 from auth.session_manager import get_current_user
@@ -16,41 +14,14 @@ from database.repositories import (
 from ui.components.metrics_cards import (
     page_header, section_header, alert_box, tooltip_box, spacer
 )
-from services.portfolio_service import build_portfolio_data, run_markowitz_optimization
-from config.settings import CONFIG_DIR, MAX_ASSETS, DEFAULT_HISTORY_YEARS
-
-
-def _load_assets() -> dict:
-    with open(CONFIG_DIR / "assets.json", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def _flat_asset_list(assets_data: dict) -> list[dict]:
-    """Flatten categorized assets into a list."""
-    flat = []
-    for category, items in assets_data["categories"].items():
-        for item in items:
-            flat.append({**item, "category": category})
-    return flat
+from services.market_service import get_asset_catalog, flat_asset_list
+from services.portfolio_service import build_portfolio_data, run_markowitz_optimization, equal_weights_dict
+from config.settings import MAX_ASSETS, DEFAULT_HISTORY_YEARS
 
 
 def _request_normalization() -> None:
     """Request a weight normalization on the next render pass."""
     st.session_state["pb_normalize_requested"] = True
-
-
-def _equal_weights_dict(tickers: list[str]) -> dict[str, float]:
-    n = len(tickers)
-    if n == 0:
-        return {}
-    base = round(100.0 / n, 2)
-    weights = {t: base for t in tickers}
-    diff = round(100.0 - sum(weights.values()), 2)
-    if diff != 0:
-        step = 0.01 if diff > 0 else -0.01
-        for i in range(int(abs(diff) * 100)):
-            weights[tickers[i % n]] = round(weights[tickers[i % n]] + step, 2)
-    return weights
 
 
 def render_portfolio_builder() -> None:
@@ -60,8 +31,8 @@ def render_portfolio_builder() -> None:
 
     page_header("Constructor de Portafolio 📊", "Selecciona hasta 5 activos y asigna los pesos de inversión.")
 
-    assets_data = _load_assets()
-    flat_assets = _flat_asset_list(assets_data)
+    assets_data = get_asset_catalog()
+    flat_assets = flat_asset_list(assets_data)
     ticker_map = {a["ticker"]: a for a in flat_assets}
     all_tickers = [a["ticker"] for a in flat_assets]
     ticker_labels = {a["ticker"]: f"{a['ticker']} — {a['name']}" for a in flat_assets}
@@ -101,7 +72,7 @@ def render_portfolio_builder() -> None:
     # Auto-normalize weights when asset selection changes
     prev = st.session_state.get("pb_prev_tickers", [])
     if set(selected_tickers) != set(prev):
-        equal_weights = _equal_weights_dict(selected_tickers)
+        equal_weights = equal_weights_dict(selected_tickers)
         for ticker, value in equal_weights.items():
             st.session_state[f"w_{ticker}_input"] = value
         st.session_state["pb_prev_tickers"] = selected_tickers
@@ -126,7 +97,7 @@ def render_portfolio_builder() -> None:
     tooltip_box("La suma de todos los pesos debe ser exactamente 100%. El sistema lo valida automáticamente.")
 
     if st.session_state.pop("pb_normalize_requested", False):
-        equal_weights = _equal_weights_dict(selected_tickers)
+        equal_weights = equal_weights_dict(selected_tickers)
         for ticker, value in equal_weights.items():
             st.session_state[f"w_{ticker}_input"] = value
         st.rerun()
@@ -153,7 +124,7 @@ def render_portfolio_builder() -> None:
                         st.error(f"Error en optimización: {str(e)}")
 
     # Initialize only the active selection keys once so every asset remains editable.
-    equal_weights = _equal_weights_dict(selected_tickers)
+    equal_weights = equal_weights_dict(selected_tickers)
     for ticker in selected_tickers:
         key = f"w_{ticker}_input"
         if key not in st.session_state:
