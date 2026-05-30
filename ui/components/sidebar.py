@@ -4,12 +4,13 @@ SmartRisk - Sidebar Navigation Component
 import streamlit as st
 from auth.session_manager import get_current_user, logout_session, is_admin
 from config.settings import APP_NAME, APP_VERSION, ROLE_ADMIN
+from ui.assets import get_logo_img_tag
 
 
 NAV_ITEMS_USER = [
     ("🏠", "Dashboard",           "dashboard"),
-    ("📊", "Mi Portafolio",        "portfolio"),
     ("🎯", "Perfil de Riesgo",     "risk_quiz"),
+    ("📊", "Mi Portafolio",        "portfolio"),
     ("🔬", "Simulador",            "simulator"),
     ("📈", "Resultados",           "results"),
     ("👤", "Mi Cuenta",            "profile"),
@@ -29,9 +30,11 @@ def render_sidebar() -> None:
     with st.sidebar:
         # ── Logo ──────────────────────────────────────────────────────────
         st.markdown(
-            """
+            f"""
             <div class="logo-container">
-                <div class="logo-text">📉 SmartRisk</div>
+                <div class="logo-text">
+                    {get_logo_img_tag(height="2rem")}SmartRisk
+                </div>
                 <div class="logo-sub">Robo-Advisor Académico</div>
             </div>
             <div class="logo-divider"></div>
@@ -80,14 +83,3 @@ def render_sidebar() -> None:
         if st.button("⬡  Cerrar Sesión", key="nav_logout", use_container_width=True):
             logout_session()
             st.rerun()
-
-        # ── Footer ─────────────────────────────────────────────────────────
-        st.markdown(
-            f"""
-            <div style="position: absolute; bottom: 1.5rem; left: 1rem; right: 1rem;
-                        text-align: center; font-size: 0.65rem; color: rgba(255,255,255,0.25);">
-                {APP_NAME} v{APP_VERSION} · SI210M1 · 2026
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )

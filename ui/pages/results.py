@@ -12,12 +12,15 @@ from ui.components.metrics_cards import (
 )
 
 SORT_OPTIONS = {
-    "Más recientes": ("created_at", True),
-    "Mejor capital final": ("summary.median_capital", True),
-    "Peor capital final": ("summary.median_capital", False),
-    "Mejor VaR 95%": ("summary.var_95_value", True),
-    "Mejor CAGR": ("summary.cagr_median", True),
-    "Peor CAGR": ("summary.cagr_median", False),
+    "Capital": ("summary.median_capital", True),
+    "VAR95%":  ("summary.var_95_value", True),
+    "CAGR":    ("summary.cagr_median", True),
+}
+
+SORT_COLUMN_MAP = {
+    "Capital": "Capital Mediano",
+    "VAR95%":  "VaR 95%",
+    "CAGR":    "CAGR",
 }
 
 
@@ -61,21 +64,15 @@ def render_results() -> None:
         )
     sort_key, sort_reverse = SORT_OPTIONS[selected_sort]
     with col_algo:
-        if sort_key == "created_at":
-            sims_sorted = simulations
-            algo_name = "—"
-        else:
-            def _sort_key_fn(s):
-                return _extract_value(s, sort_key)
-            sims_sorted = SimulationSorter.sort(simulations, key=_sort_key_fn, reverse=sort_reverse)
-            algo_name = SimulationSorter.ALGORITHM
+        def _sort_key_fn(s):
+            return _extract_value(s, sort_key)
+        sims_sorted = SimulationSorter.sort(simulations, key=_sort_key_fn, reverse=sort_reverse)
         st.markdown(
             f"<div style='padding-top:1.7rem; text-align:right; color:#718096; font-size:0.82rem;'>"
-            f"Algoritmo: <strong>{algo_name}</strong> · {len(sims_sorted)} elementos</div>",
+            f"Algoritmo: <strong>{SimulationSorter.ALGORITHM}</strong> · {len(sims_sorted)} elementos</div>",
             unsafe_allow_html=True,
         )
-        if sort_key != "created_at":
-            st.caption(f"📌 SimulationSorter.sort() — {'QuickSort (O(n log n)) si > 10 elementos' if len(sims_sorted) > 10 else 'MergeSort (O(n log n)) si ≤ 10 elementos'}")
+        st.caption(f"📌 SimulationSorter.sort() — {'QuickSort (O(n log n)) si > 10 elementos' if len(sims_sorted) > 10 else 'MergeSort (O(n log n)) si ≤ 10 elementos'}")
 
     rows = []
     for sim in sims_sorted:
@@ -100,15 +97,16 @@ def render_results() -> None:
     st.dataframe(display_df, use_container_width=True, hide_index=True)
 
     # ── Best / Worst highlight ─────────────────────────────────────────────
-    if sort_key != "created_at" and len(display_df) >= 2:
+    if len(display_df) >= 2:
         spacer(0.3)
+        value_col = SORT_COLUMN_MAP[selected_sort]
         cols_best = st.columns(2)
         with cols_best[0]:
             best = display_df.iloc[0]
             st.markdown(
                 f"<div style='background:#F0FFF4; border:1px solid #C6F6D5; border-radius:10px; "
                 f"padding:0.7rem 1rem;'>"
-                f"🏆 <strong>Mejor:</strong> {best['Portafolio']} — {best['Capital Mediano']}</div>",
+                f"🏆 <strong>Mejor:</strong> {best['Portafolio']} — {best[value_col]}</div>",
                 unsafe_allow_html=True,
             )
         with cols_best[1]:
@@ -116,7 +114,7 @@ def render_results() -> None:
             st.markdown(
                 f"<div style='background:#FFF5F5; border:1px solid #FED7D7; border-radius:10px; "
                 f"padding:0.7rem 1rem;'>"
-                f"⚠️ <strong>Peor:</strong> {worst['Portafolio']} — {worst['Capital Mediano']}</div>",
+                f"⚠️ <strong>Peor:</strong> {worst['Portafolio']} — {worst[value_col]}</div>",
                 unsafe_allow_html=True,
             )
 
