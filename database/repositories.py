@@ -15,28 +15,34 @@ from config.settings import (
     SIMULATIONS_DIR,
     RISK_RESULTS_DIR,
 )
+from core.exceptions import DataError
 
 
 # ── Generic helpers ────────────────────────────────────────────────────────────
 
 def _read(filepath: Path) -> dict:
-    """Read a JSON file; return empty dict if missing or corrupt."""
-    try:
-        if filepath.exists():
+    """Read a JSON file; return empty dict if missing."""
+    if filepath.exists():
+        try:
             with open(filepath, "r", encoding="utf-8") as f:
                 return json.load(f)
-    except (json.JSONDecodeError, OSError):
-        pass
+        except json.JSONDecodeError as e:
+            raise DataError(f"Corrupted JSON file: {filepath.name}") from e
+        except OSError as e:
+            raise DataError(f"Cannot read file: {filepath.name}") from e
     return {}
 
 
 def _write(filepath: Path, data: dict) -> None:
     """Write data to a JSON file atomically."""
-    filepath.parent.mkdir(parents=True, exist_ok=True)
-    tmp = filepath.with_suffix(".tmp")
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2, default=str)
-    os.replace(tmp, filepath)
+    try:
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        tmp = filepath.with_suffix(".tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2, default=str)
+        os.replace(tmp, filepath)
+    except (OSError, TypeError) as e:
+        raise DataError(f"Cannot write file: {filepath.name}") from e
 
 
 def _now() -> str:

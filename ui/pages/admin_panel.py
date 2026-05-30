@@ -7,6 +7,7 @@ import pandas as pd
 from auth.session_manager import get_current_user, is_admin
 from auth.auth_service import register_user
 from core.exceptions import AuthError, ValidationError
+from core.utils.string_validator import StringValidator
 from auth.password_utils import hash_password
 from database.repositories import (
     get_all_users,
@@ -143,8 +144,9 @@ def render_admin_panel() -> None:
                             "is_active": edit_active,
                         }
                         if edit_new_pass:
-                            if len(edit_new_pass) < 8:
-                                st.error("La contraseña debe tener al menos 8 caracteres.")
+                            is_valid, msg = StringValidator.validate_password(edit_new_pass)
+                            if not is_valid:
+                                st.error(msg)
                             else:
                                 updates["password_hash"] = hash_password(edit_new_pass)
                         update_user(selected_uid, updates)

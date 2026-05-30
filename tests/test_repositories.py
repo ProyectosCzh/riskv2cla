@@ -172,18 +172,19 @@ class TestSimulationCRUD:
 class TestRiskProfileCRUD:
     def test_save_and_get(self, patch_repos_settings):
         u = create_user(**SAMPLE_USER)
-        rp = save_risk_profile(u["id"], "moderado", 65, [1, 2, 3])
+        rp = save_risk_profile(u["id"], "moderado", 10, [1, 2, 3, 4, 5])
         assert rp["profile"] == "moderado"
-        assert rp["score"] == 65
+        assert rp["score"] == 10
         loaded = get_risk_profile_for_user(u["id"])
         assert loaded is not None
-        assert loaded["score"] == 65
+        assert loaded["score"] == 10
 
     def test_update_risk_profile(self, patch_repos_settings):
         u = create_user(**SAMPLE_USER)
-        save_risk_profile(u["id"], "conservador", 30, [1, 1, 1])
-        save_risk_profile(u["id"], "agresivo", 90, [5, 5, 5])
+        save_risk_profile(u["id"], "conservador", 6, [1, 1, 1, 1, 1])
+        save_risk_profile(u["id"], "agresivo", 14, [5, 5, 5, 5, 5])
         loaded = get_risk_profile_for_user(u["id"])
+        assert loaded is not None
         assert loaded["profile"] == "agresivo"
 
     def test_get_nonexistent(self, patch_repos_settings):

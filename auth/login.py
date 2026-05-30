@@ -102,3 +102,4 @@ def _render_register_form() -> None:
                 st.success("✅ Cuenta creada exitosamente. Ahora puedes iniciar sesión.")
             except (AuthError, ValidationError) as e:
                 st.error(str(e))
+                st.caption(f"📌 Jerarquía SmartRiskError: {type(e).__name__} capturada — herencia de excepciones personalizadas")
