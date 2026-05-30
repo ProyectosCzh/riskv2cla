@@ -132,6 +132,20 @@ def run_markowitz_optimization(
         return optimize_min_variance(mu, cov, RISK_FREE_RATE, portfolio_data.tickers)
 
 
+def equal_weights_dict(tickers: list[str]) -> dict[str, float]:
+    n = len(tickers)
+    if n == 0:
+        return {}
+    base = round(100.0 / n, 2)
+    weights = {t: base for t in tickers}
+    diff = round(100.0 - sum(weights.values()), 2)
+    if diff != 0:
+        step = 0.01 if diff > 0 else -0.01
+        for i in range(int(abs(diff) * 100)):
+            weights[tickers[i % n]] = round(weights[tickers[i % n]] + step, 2)
+    return weights
+
+
 def compute_efficient_frontier(portfolio_data: PortfolioData) -> pd.DataFrame:
     mu = portfolio_data.mu_vec
     sigma = portfolio_data.sigma_vec

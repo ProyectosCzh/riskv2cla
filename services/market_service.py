@@ -17,3 +17,12 @@ def get_risk_profiles() -> dict:
     path = CONFIG_DIR / "risk_profiles.json"
     with open(path, encoding="utf-8") as f:
         return json.load(f)
+
+
+def flat_asset_list(assets_data: dict) -> list[dict]:
+    """Flatten categorized assets into a list."""
+    flat = []
+    for category, items in assets_data["categories"].items():
+        for item in items:
+            flat.append({**item, "category": category})
+    return flat
