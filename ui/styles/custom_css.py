@@ -46,6 +46,10 @@ html, body, [class*="css"] {
     border-right: none;
 }
 
+[data-testid="stSidebarCollapseButton"] {
+    display: none !important;
+}
+
 [data-testid="stSidebar"] * {
     color: rgba(255,255,255,0.9) !important;
 }

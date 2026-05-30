@@ -80,14 +80,3 @@ def render_sidebar() -> None:
         if st.button("⬡  Cerrar Sesión", key="nav_logout", use_container_width=True):
             logout_session()
             st.rerun()
-
-        # ── Footer ─────────────────────────────────────────────────────────
-        st.markdown(
-            f"""
-            <div style="position: absolute; bottom: 1.5rem; left: 1rem; right: 1rem;
-                        text-align: center; font-size: 0.65rem; color: rgba(255,255,255,0.25);">
-                {APP_NAME} v{APP_VERSION} · SI210M1 · 2026
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
