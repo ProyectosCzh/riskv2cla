@@ -20,7 +20,6 @@ from ui.components.charts import (
     plot_final_value_histogram,
     plot_portfolio_weights,
     plot_historical_performance,
-    plot_correlation_heatmap,
 )
 from config.settings import (
     DEFAULT_INITIAL_CAPITAL,
@@ -301,9 +300,9 @@ def _render_results(result, portfolio_data, tickers: list, weights: list) -> Non
     spacer()
 
     # ── Charts ─────────────────────────────────────────────────────────────
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3 = st.tabs([
         "📈 Proyección", "📊 Distribución",
-        "📉 Histórico", "🔗 Correlaciones"
+        "📉 Histórico"
     ])
 
     with tab1:
@@ -340,14 +339,5 @@ def _render_results(result, portfolio_data, tickers: list, weights: list) -> Non
                 "Max Drawdown (histórico)": f"{s.get('max_drawdown', 0):.2%}",
             })
         st.dataframe(pd.DataFrame(hist_rows), use_container_width=True, hide_index=True)
-
-    with tab4:
-        fig5 = plot_correlation_heatmap(portfolio_data.corr_matrix)
-        st.plotly_chart(fig5, use_container_width=True)
-        tooltip_box(
-            "La correlación mide cómo se mueven juntos dos activos. "
-            "Valores cercanos a -1 indican movimientos opuestos (ideal para diversificación). "
-            "Valores cercanos a 1 indican que suben y bajan al mismo tiempo."
-        )
 
 

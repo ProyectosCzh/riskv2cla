@@ -8,8 +8,8 @@ from config.settings import APP_NAME, APP_VERSION, ROLE_ADMIN
 
 NAV_ITEMS_USER = [
     ("🏠", "Dashboard",           "dashboard"),
-    ("📊", "Mi Portafolio",        "portfolio"),
     ("🎯", "Perfil de Riesgo",     "risk_quiz"),
+    ("📊", "Mi Portafolio",        "portfolio"),
     ("🔬", "Simulador",            "simulator"),
     ("📈", "Resultados",           "results"),
     ("👤", "Mi Cuenta",            "profile"),
