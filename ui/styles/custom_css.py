@@ -50,6 +50,15 @@ html, body, [class*="css"] {
     display: none !important;
 }
 
+/* ── La sidebar nunca colapsa visualmente ────────────────────────────── */
+section[data-testid="stSidebar"],
+section[data-testid="stSidebar"][data-collapsed="true"] {
+    transform: none !important;
+    visibility: visible !important;
+    margin-left: 0 !important;
+    width: auto !important;
+}
+
 [data-testid="stSidebar"] * {
     color: rgba(255,255,255,0.9) !important;
 }
