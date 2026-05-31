@@ -3,7 +3,7 @@ SmartRisk - Sidebar Navigation Component
 """
 import streamlit as st
 from auth.session_manager import get_current_user, logout_session, is_admin
-from config.settings import APP_NAME, APP_VERSION, ROLE_ADMIN
+from config.settings import ROLE_ADMIN
 from ui.assets import get_logo_img_tag
 
 

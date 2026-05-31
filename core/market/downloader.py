@@ -47,7 +47,7 @@ def _save_cache(path: Path, prices: pd.Series) -> None:
         json.dump(payload, f)
 
 
-def download_prices(ticker: str, years: int = 5) -> Optional[pd.Series]:
+def _download_prices(ticker: str, years: int = 5) -> Optional[pd.Series]:
     """
     Download adjusted close prices for a ticker.
     Returns a pandas Series with datetime index or None on failure.
@@ -116,7 +116,7 @@ def download_multiple(
 
     while not queue.is_empty():
         ticker = queue.dequeue()
-        series = download_prices(ticker, years)
+        series = _download_prices(ticker, years)
         if series is not None:
             result[ticker] = series
         processed += 1
@@ -127,7 +127,7 @@ def download_multiple(
     return result
 
 
-def compute_returns(prices: pd.Series) -> pd.Series:
+def _compute_returns(prices: pd.Series) -> pd.Series:
     """Compute daily log returns."""
     return np.log(prices / prices.shift(1)).dropna()
 
@@ -137,7 +137,7 @@ def compute_stats(prices: pd.Series) -> dict:
     Compute annualized mean return, volatility, and max drawdown
     from price series.
     """
-    returns = compute_returns(prices)
+    returns = _compute_returns(prices)
     mu = float(returns.mean() * 252)
     sigma = float(returns.std() * np.sqrt(252))
     # Max drawdown
