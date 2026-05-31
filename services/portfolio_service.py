@@ -14,7 +14,6 @@ from core.market.downloader import (
 from core.finance.markowitz import (
     optimize_max_sharpe,
     optimize_min_variance,
-    generate_efficient_frontier,
     OptimizationResult,
 )
 from config.settings import RISK_FREE_RATE
@@ -145,10 +144,3 @@ def equal_weights_dict(tickers: list[str]) -> dict[str, float]:
             weights[tickers[i % n]] = round(weights[tickers[i % n]] + step, 2)
     return weights
 
-
-def compute_efficient_frontier(portfolio_data: PortfolioData) -> pd.DataFrame:
-    mu = portfolio_data.mu_vec
-    sigma = portfolio_data.sigma_vec
-    corr = portfolio_data.corr_array
-    cov = np.outer(sigma, sigma) * corr
-    return generate_efficient_frontier(mu, cov, RISK_FREE_RATE)

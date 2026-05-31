@@ -8,7 +8,7 @@ from auth.session_manager import get_current_user
 from core.ds.sorting import SimulationSorter
 from database.repositories import get_simulations_for_user, delete_simulation
 from ui.components.metrics_cards import (
-    page_header, section_header, alert_box, spacer, metric_card
+    page_header, section_header, alert_box, spacer
 )
 
 SORT_OPTIONS = {
